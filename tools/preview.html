@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>PumaMech art preview</title>
+<style>body{background:#2a2d24;color:#ddd;font:13px sans-serif;margin:8px}canvas{image-rendering:pixelated;display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script src="../js/util.js"></script><script src="../js/kit.js"></script><script src="../js/tiles.js"></script><script src="../js/ground.js"></script><script src="../js/things.js"></script><script src="../js/people.js"></script><script src="../js/data.js"></script><script src="../js/world.js"></script><script src="../js/town.js"></script><script src="../js/buildings.js"></script><script src="../js/mechs.js"></script>
+<script>
+const K = PM.K, q = new URLSearchParams(location.search), Z = +(q.get("z") || 3);
+const cv = document.getElementById("c"), W = 480, H = 300 * 2;
+cv.width = W; cv.height = H; cv.style.width = W * Z + "px"; cv.style.height = H * Z + "px";
+const g = cv.getContext("2d"); g.imageSmoothingEnabled = false;
+for (let ty = 0; ty < H / 24; ty++) for (let tx = 0; tx < W / 24; tx++) g.drawImage(PM.tileArt("temperate", 0, 0, 0, tx, ty), tx * 24, ty * 24);
+const sh = document.createElement("canvas"); sh.width = W; sh.height = H; const sg = sh.getContext("2d");
+const items = [];
+const mode = q.get("m") || "mechs";
+if (mode === "mechs") {
+  const ids = (q.get("ids") || PM.MECH_SHAPES.join(",")).split(",");
+  const paint = q.get("p") || "claw";
+  ids.forEach((id, i) => { for (let d = 0; d < 8; d++) items.push([PM.mechArt(id, paint, d, "stand", 0), 20 + d * 56, 70 + i * 0]); });
+} else if (mode === "one") {
+  const id = q.get("id") || "bulwark";
+  PM.MECH_PAINTS.forEach((p, j) => { for (let d = 0; d < 8; d++) items.push([PM.mechArt(id, p, d, "stand", 0), 30 + d * 56, 70 + j * 76]); });
+} else if (mode === "walk") {
+  const id = q.get("id") || "bulwark", p = q.get("p") || "wolf";
+  for (let d = 0; d < 8; d++) for (let f = 0; f < 4; f++) items.push([PM.mechArt(id, p, d, "walk", f), 30 + f * 60 + (d & 1) * 240, 70 + (d >> 1) * 76]);
+} else if (mode === "people") {
+  const looks = (q.get("looks") || "cadet,cadetR,merc,tech,doctor,scout,father,brock,keeper,trooper,sergeant,raider,capy,hedge,innM,aunt,civ0,civ1,civ2,civ3,civ4,civ5,civ6,civ7").split(",");
+  looks.forEach((lk, i) => [8, 4, 0, 28, 24].forEach((f, j) => items.push([PM.personArt(lk, f, "stand", 0), 16 + j * 18 + (i % 4) * 118, 40 + Math.floor(i / 4) * 44])));
+} else if (mode === "all") {
+  const p = q.get("p") || "claw";
+  PM.MECH_SHAPES.forEach((id, i) => items.push([PM.mechArt(id, p, +(q.get("d") || 1), "stand", 0), 34 + (i % 8) * 58, 80 + Math.floor(i / 8) * 90]));
+  ["wreck", "down"].forEach((po, j) => items.push([PM.mechArt("bulwark", "wolf", 1, po, 0), 34 + j * 58, 280]));
+}
+for (const [c, x, y] of items) if (c.sh) sg.drawImage(c.sh, Math.round(x - c.ax + c.shx), Math.round(y - c.ay + c.shy));
+const tint = document.createElement("canvas"); tint.width = W; tint.height = H; const tg = tint.getContext("2d");
+tg.fillStyle = "#8f9ab8"; tg.fillRect(0, 0, W, H); tg.globalCompositeOperation = "destination-in"; tg.drawImage(sh, 0, 0);
+g.globalCompositeOperation = "multiply"; g.drawImage(tint, 0, 0); g.globalCompositeOperation = "source-over";
+items.sort((a, b) => a[2] - b[2]);
+for (const [c, x, y] of items) g.drawImage(c, Math.round(x - c.ax), Math.round(y - c.ay));
+</script></body></html>

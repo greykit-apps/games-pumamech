@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PumaMech — The Sunclaws Rise</title>
+<meta name="description" content="A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.">
+<meta name="theme-color" content="#0c0d11">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<meta property="og:title" content="PumaMech">
+<meta property="og:description" content="A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://greykit.com/games/pumamech/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.">
+<meta property="og:url" content="https://greykit.com/games/pumamech/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PumaMech">
+<meta name="twitter:description" content="A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.">
+<meta name="twitter:image" content="https://greykit.com/games/pumamech/og.png">
+<meta name="twitter:image:alt" content="A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="stylesheet" href="css/gk-tokens.css?v=7c37e1f9">
+<link rel="stylesheet" href="css/pumamech.css?v=3e2e934b">
+</head>
+<body>
+<div id="game" hidden>
+  <div id="stage"><canvas id="screen" width="480" height="300" aria-label="PumaMech: the field"></canvas><div class="fx fx-sun"></div><div class="fx fx-cool"></div><div class="fx fx-haze"></div><div class="fx fx-vig"></div><div id="hud"></div></div>
+  <div id="corner">
+    <button id="pausebtn" aria-label="Pause" title="Pause (Esc)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" fill="currentColor"/><rect x="9" y="3" width="3" height="10" fill="currentColor"/></svg></button>
+    <button id="snd" aria-label="Sound" aria-pressed="true" title="Sound (M)"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path class="on" d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.1 2.4 2.1 6 0 8.4" stroke="currentColor" stroke-width="1.4" fill="none"/><path class="off" d="M11 5.5l4 5M15 5.5l-4 5" stroke="currentColor" stroke-width="1.4"/></svg></button>
+  </div>
+  <div id="live" class="sr" aria-live="polite"></div>
+</div>
+<div id="title" hidden></div>
+<div id="small" role="dialog" aria-labelledby="small-h">
+  <img class="px" src="icon.svg" width="96" height="96" alt="">
+  <h1 id="small-h">PumaMech is built for a desktop</h1>
+  <p>Mechs, maps and rounds of orders need a keyboard, or a gamepad, and a bigger screen than this. Come back on a computer.</p>
+  <p class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>
+</div>
+<script src="js/gk-title.js?v=6080c669"></script>
+<script src="js/util.js?v=9b1f9cd0"></script>
+<script src="js/kit.js?v=7f00e558"></script>
+<script src="js/tiles.js?v=73e75c89"></script>
+<script src="js/data.js?v=f2e5bb1a"></script>
+<script src="js/world.js?v=67437c04"></script>
+<script src="js/ground.js?v=ea41388a"></script>
+<script src="js/town.js?v=8911b141"></script>
+<script src="js/things.js?v=bd75210f"></script>
+<script src="js/buildings.js?v=9c77f323"></script>
+<script src="js/people.js?v=ccbb7d50"></script>
+<script src="js/mechs.js?v=c2db25d8"></script>
+<script src="js/sfx.js?v=6f1cc57a"></script>
+<script src="js/engine/state.js?v=8c757b6a"></script>
+<script src="js/engine/explore.js?v=642b54ec"></script>
+<script src="js/engine/combat.js?v=386fe36c"></script>
+<script src="js/engine/ai.js?v=c69710d1"></script>
+<script src="js/story.js?v=8505f518"></script>
+<script src="js/render.js?v=13d504b6"></script>
+<script src="js/ui.js?v=f3fb826f"></script>
+<script src="js/hud.js?v=ca0c94b8"></script>
+<script src="js/screens.js?v=7583fbb4"></script>
+<script src="js/places.js?v=87bc8b79"></script>
+<script src="js/battle.js?v=23ca1775"></script>
+<script src="js/main.js?v=110fc489"></script>
+</body>
+</html>

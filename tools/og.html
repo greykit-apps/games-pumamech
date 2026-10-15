@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>og.png</title>
+<!-- The share card (og.png, 1200x630), laid out as the family's are (a cyan
+     rule, the wordmark with "Puma" in cyan, the description, a tagline, the
+     icon top right) over the field in the game's own art at three times:
+     the road west of Portgate's bridge, a lance of three walking in, a Pact
+     mech waiting. Serve the repo over http and screenshot it headless:
+       msedge --headless --hide-scrollbars --window-size=1200,630
+              --screenshot=og.png http://127.0.0.1:8772/tools/og.html
+     iconArt() composes the icon's 40x40 drawing and returns it as JSON for
+     tools/icon-art.json, which tools/make-icons.js reads. Not deployed. -->
+<style>body{margin:0;background:#222;overflow:hidden}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="og" width="1200" height="630"></canvas>
+<script src="../js/util.js"></script>
+<script src="../js/kit.js"></script>
+<script src="../js/tiles.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/world.js"></script>
+<script src="../js/ground.js"></script>
+<script src="../js/town.js"></script>
+<script src="../js/things.js"></script>
+<script src="../js/buildings.js"></script>
+<script src="../js/people.js"></script>
+<script src="../js/mechs.js"></script>
+<script src="../js/engine/state.js"></script>
+<script src="../js/engine/explore.js"></script>
+<script src="../js/story.js"></script>
+<script src="../js/render.js"></script>
+<script>
+"use strict";
+(() => {
+  const K = PM.K, R = PM.Render;
+  const field = K.mk(480, 300);
+  R.init(field);
+  const S = { pos: { map: "world", x: 39, y: 56, f: 0 }, flags: {}, party: [], chars: {}, mechs: [], items: {}, vault: {} };
+  const walkers = [["sunclaw", "claw", 41.2, 57.0, 0, 1], ["bulwark", "claw", 38.4, 57.3, 0, 3], ["marten", "claw", 39.6, 55.4, 0, 2], ["howler", "wolf", 45.4, 58.6, 5, 0]];
+  R.draw({ S, cam: [27 * 24, 51 * 24], noParty: true, noNpcs: true, extra: (list, cx, cy) => {
+    for (const [ch, paint, x, y, d, fr] of walkers) { const c = PM.mechArt(ch, paint, d, d === 0 ? "walk" : "stand", fr); list.push([y + 0.5, c, Math.round(x * 24 - c.ax - cx), Math.round(y * 24 - c.ay - cy)]); }
+    const p = PM.personArt("cadet", 0, "stand", 0); list.push([58.6, p, Math.round(36.6 * 24 - p.ax - cx), Math.round(58.6 * 24 - p.ay - cy)]);
+  } }, 0);
+  const W = 400, H = 210;
+  const cv = document.getElementById("og"), g = cv.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(field, 70, 40, W, H, 0, 0, 1200, 630);
+  /* the stage's light, as css/pumamech.css lays it over the field */
+  const layer = (op, paint) => { g.save(); g.globalCompositeOperation = op; paint(); g.restore(); };
+  layer("soft-light", () => { const r = g.createRadialGradient(-72, 655, 0, -72, 655, 790); r.addColorStop(0, "rgba(255,200,120,.62)"); r.addColorStop(1, "rgba(255,206,138,0)"); g.fillStyle = r; g.fillRect(0, 0, 1200, 630); });
+  layer("multiply", () => { const l = g.createLinearGradient(0, 630, 960, 0); l.addColorStop(0.4, "rgba(0,0,0,0)"); l.addColorStop(1, "rgba(64,54,132,.32)"); g.fillStyle = l; g.fillRect(0, 0, 1200, 630); });
+  const sh = g.createLinearGradient(0, 0, 640, 0);
+  sh.addColorStop(0, "rgba(5,7,15,.96)"); sh.addColorStop(0.6, "rgba(5,7,15,.82)"); sh.addColorStop(1, "rgba(5,7,15,0)");
+  g.fillStyle = sh; g.fillRect(0, 0, 640, 630);
+  g.fillStyle = "#54f2ff"; g.fillRect(0, 0, 1200, 8);
+  const mono = 'Menlo, Consolas, "DejaVu Sans Mono", "Courier New", monospace';
+  g.textBaseline = "alphabetic";
+  g.font = `bold 92px ${mono}`;
+  g.fillStyle = "#54f2ff"; g.fillText("Puma", 72, 156);
+  g.fillStyle = "#e9e9f2"; g.fillText("Mech", 72 + g.measureText("Puma").width, 156);
+  g.font = `32px ${mono}`; g.fillStyle = "#b4bac6";
+  ["A puma cadet, a training mech", "and an invasion. Gather a lance,", "find the Founders' Vault."].forEach((l, i) => g.fillText(l, 72, 236 + i * 44));
+  g.font = `26px ${mono}`; g.fillStyle = "#54f2ff";
+  g.fillText("A remake of a 1988 C64 mech classic", 72, 566);
+  const img = new Image();
+  img.onload = () => { g.drawImage(img, 1010, 40, 130, 130); window.ogReady = true; document.title = "ready"; };
+  img.onerror = () => { window.ogReady = true; };
+  img.src = "../icon.svg?" + Date.now();
+  window.ogPNG = () => cv.toDataURL("image/png");
+
+  /* the icon, 40 x 40: the Sunclaw's head and shoulders against a dusk sky */
+  window.iconArt = () => {
+    const N = 40, c = K.mk(N, N), x = c.getContext("2d");
+    const RAMP = ["#0a1022", "#111a33", "#1b2442", "#2c2c4a", "#4a3a4a", "#7a4a48", "#b0684a", "#d98a4e"];
+    for (let y = 0; y < N; y++) for (let i = 0; i < N; i++) {
+      const t = Math.pow(y / (N - 1), 1.4) * (RAMP.length - 1) + K.bayer(i, y) * 0.9;
+      x.fillStyle = RAMP[Math.max(0, Math.min(RAMP.length - 1, Math.round(t)))]; x.fillRect(i, y, 1, 1);
+    }
+    for (const [i, y, b] of [[4, 5, 1], [33, 4, 0], [30, 11, 0], [6, 15, 0], [36, 19, 1], [12, 3, 0]]) { x.fillStyle = b ? "#e8ecff" : "#8090c0"; x.fillRect(i, y, 1, 1); }
+    const m = PM.mechArt("sunclaw", "claw", 2, "stand", 0);
+    x.drawImage(m, Math.round(N / 2 - m.ax), 3);
+    const d = x.getImageData(0, 0, N, N).data, keys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=?~^!<>()[]{}";
+    const pal = {}, rev = {}, rows = [];
+    for (let y = 0; y < N; y++) {
+      let r = "";
+      for (let i = 0; i < N; i++) {
+        const o = (y * N + i) * 4, h = "#" + [d[o], d[o + 1], d[o + 2]].map(v => v.toString(16).padStart(2, "0")).join("");
+        if (!(h in rev)) { const k = keys[Object.keys(pal).length]; rev[h] = k; pal[k] = h; }
+        r += rev[h];
+      }
+      rows.push(r);
+    }
+    return JSON.stringify({ pal, art: rows });
+  };
+})();
+</script>
+</body>
+</html>

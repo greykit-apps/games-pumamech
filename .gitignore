@@ -1,0 +1,9 @@
+.claude/
+.DS_Store
+# the original disks, kept beside the repo for reference only -- never commit them
+*.D64
+*.d64
+*.zip
+reference/
+# design-review snapshots, local only
+.impeccable/

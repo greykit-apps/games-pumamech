@@ -1,0 +1,14 @@
+{
+  "name": "PumaMech",
+  "short_name": "PumaMech",
+  "description": "A puma cadet, a borrowed training mech, and an invasion. Train at the Bastion, survive the occupation of Portgate, gather a lance of misfits and find the Founders' Vault. A remake of the 1988 Commodore 64 mech role-playing classic.",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c0d11",
+  "theme_color": "#0c0d11",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
