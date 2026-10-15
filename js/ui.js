@@ -27,6 +27,16 @@
   UI.face = (look, scale = 3, alt = "") => `<img class="px face" src="${UI.url(UI.faceArt(look))}" width="${24 * scale}" height="${22 * scale}" alt="${esc(alt)}">`;
   UI.mechImg = (ch, paint, scale = 2, pose = "stand") => UI.img(PM.mechArt(ch, paint, 1, pose, 0), scale, "px mechpic", PM.CHASSIS[ch].name);
 
+  /* the dim under the full sheets. Its fade-out waits a tick, so a sheet
+   * that follows straight on (the next line of a talk) keeps it up */
+  let scrim = null, scrimOff = 0;
+  const dim = on => {
+    if (!scrim) { scrim = document.createElement("div"); scrim.id = "pm-scrim"; document.body.appendChild(scrim); scrim.getBoundingClientRect(); }
+    clearTimeout(scrimOff);
+    if (on) scrim.classList.add("on");
+    else scrimOff = setTimeout(() => scrim.classList.remove("on"), 0);
+  };
+
   UI.open = (title, { tabs, html, onClick, onClose, onKey, back, tab = 0, wide = false, closable = true, popup = false, cls = "" }) => {
     UI.close(true);
     const el = document.createElement("div");
@@ -61,6 +71,7 @@
     function goBack() { UI.close(true); back(); }
     const focusFirst = () => { const n = el.querySelector("[autofocus]") || el.querySelector(".sh-body .primary:not(:disabled)") || el.querySelector('[role="tab"][aria-selected="true"]') || el.querySelector(".sh-body button:not(:disabled)") || el.querySelector("button"); if (n) n.focus({ preventScroll: true }); };
     document.body.appendChild(el);
+    if (!popup) dim(true);
     UI.sheet = { el, onClose, onKey, closable, back: back ? goBack : null, tabs: tabs ? setTab : null, tabAt: () => tab, api };
     for (const id of ["game", "title"]) { const n = document.getElementById(id); if (n) n.inert = true; }
     focusFirst();
@@ -70,6 +81,7 @@
     if (!UI.sheet) return;
     const s = UI.sheet; UI.sheet = null;
     s.el.remove();
+    dim(false);
     for (const id of ["game", "title"]) { const n = document.getElementById(id); if (n) n.inert = false; }
     if (s.onClose && !quiet) s.onClose();
     if (!quiet && PM.game && PM.game.mode === "title") PM.game.refreshTitle();
