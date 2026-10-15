@@ -67,7 +67,11 @@ input::placeholder { color: var(--pm-faint); }
 
 /* ---- a sheet: a panel over the dimmed field or title ---- */
 .pm-sheet { z-index: 50; }
-.pm-sheet.full { position: fixed; inset: 0; display: grid; place-items: center; padding: 32px; background: rgba(8,9,12,.74); backdrop-filter: blur(3px); }
+.pm-sheet.full { position: fixed; inset: 0; display: grid; place-items: center; padding: 32px; }
+/* the dim behind it is a layer of its own, so it fades in and out under the sheets rather than snapping */
+#pm-scrim { position: fixed; inset: 0; z-index: 49; background: rgba(8,9,12,.74); backdrop-filter: blur(3px); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .28s ease, visibility 0s .28s; }
+#pm-scrim.on { opacity: 1; visibility: visible; transition: opacity .22s ease; }
+@media (prefers-reduced-motion: reduce) { #pm-scrim, #pm-scrim.on { transition: none; } }
 .sh-box, .pm-win { display: flex; flex-direction: column; background: var(--pm-panel); border: 1px solid var(--pm-line); border-radius: 8px; box-shadow: 0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04); overflow: hidden; }
 .sh-box { width: min(880px, 100%); max-height: calc(100vh - 64px); }
 .pm-sheet.wide .sh-box { width: min(1180px, 100%); }
