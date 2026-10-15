@@ -19,14 +19,16 @@
   };
   H.bar = bar;
   const tone = f => f > 0.66 ? "#7fb069" : f > 0.33 ? "#e8a33d" : f > 0 ? "#e4572e" : "#2a2c33";
-  /* a mech's plate, as a little figure: head, torso, arms, legs */
+  /* a mech's plate, as a little figure: head, torso, arms, legs. Not by colour
+   * alone: a worn part carries one dark stripe, a badly hurt one two, a lost one a cross */
   H.doll = (m, w = 54) => {
     const mx = G.mechMax(m), f = l => (m.armor[l] + m.struct[l]) / (mx.armor[l] + mx.struct[l]);
     const L = { HD: [21, 0, 12, 8], LA: [0, 10, 10, 20], LT: [11, 10, 10, 18], CT: [22, 10, 10, 20], RT: [33, 10, 10, 18], RA: [44, 10, 10, 20], LL: [12, 31, 13, 20], RL: [29, 31, 13, 20] };
     const h = Math.round(w * 52 / 54);
     return `<svg class="doll" viewBox="0 0 54 52" width="${w}" height="${h}" aria-hidden="true">${Object.entries(L).map(([l, [x, y, ww, hh]]) => {
       const v = f(l), dead = m.struct[l] <= 0;
-      return `<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="1.5" fill="${tone(v)}" ${dead ? 'opacity=".5"' : ""}/>${m.struct[l] < PM.structure(PM.CHASSIS[m.ch].tons)[l] && !dead ? `<rect x="${x + 2}" y="${y + hh - 4}" width="${ww - 4}" height="2" fill="#14161c" opacity=".55"/>` : ""}${dead ? `<path d="M${x + 2} ${y + 2}L${x + ww - 2} ${y + hh - 2}M${x + ww - 2} ${y + 2}L${x + 2} ${y + hh - 2}" stroke="#e9e4d8" stroke-width="1.5"/>` : ""}`;
+      const stripes = dead ? 0 : v <= 0.33 ? 2 : v <= 0.66 ? 1 : 0;
+      return `<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="1.5" fill="${tone(v)}" ${dead ? 'opacity=".5"' : ""}/>${stripes ? `<path d="${[0.35, 0.75].slice(0, stripes).map(k => `M${x + 1} ${y + hh * k + ww * 0.5}L${x + ww - 1} ${y + hh * k - ww * 0.5}`).join("")}" stroke="#14161c" stroke-width="1.4" opacity=".6"/>` : ""}${m.struct[l] < PM.structure(PM.CHASSIS[m.ch].tons)[l] && !dead ? `<rect x="${x + 2}" y="${y + hh - 4}" width="${ww - 4}" height="2" fill="#14161c" opacity=".55"/>` : ""}${dead ? `<path d="M${x + 2} ${y + 2}L${x + ww - 2} ${y + hh - 2}M${x + ww - 2} ${y + 2}L${x + 2} ${y + hh - 2}" stroke="#e9e4d8" stroke-width="1.5"/>` : ""}`;
     }).join("")}</svg>`;
   };
   H.icon = (name, col, scale = 2) => UI.img(PM.iconArt(name, col, 1), scale, "px ico");
@@ -118,38 +120,58 @@
   };
 
   /* ---- fighting: a unit's card ----
-   * o.vs: the unit it aims at (adds a hit chance to each weapon); o.from: where it will stand */
+   * o.orders, for the one giving orders: { aim: target id per weapon, act,
+   * vs: the enemy under the cursor, odds: show chances, fc(t, i): weapon i's
+   * shot at t this round, tag(id): an enemy's letter, moveHeat }. Each weapon
+   * then shows its key, what it aims at, and its chance on THAT target this
+   * round (green: it gets the close shot; —: it never reaches). A weapon
+   * holding fire shows, faintly, what it would have on the enemy under the
+   * cursor: the chance a number key would buy. */
   H.unitCard = (S, B, u, o = {}) => {
     if (!u) return "";
-    const C = PM.Combat;
+    const C = PM.Combat, ord = o.orders;
+    const aimed = i => ord.aim[i] != null ? C.unit(B, ord.aim[i]) : null;
+    const cover = ord && ord.act && ord.act.act === "cover";
+    /* the last two cells of an orders row: what it aims at, and the chance */
+    const aimCells = (i, dead) => {
+      if (dead) return "<u></u><b></b>";
+      const t = cover ? null : aimed(i);
+      if (t) {
+        const f = ord.odds ? ord.fc(t, i) : null;
+        return `<u>${esc(ord.tag(t.id))}</u>${!ord.odds ? "<b></b>" : f ? `<b class="num${f.close ? " close" : ""}">${f.p}%</b>` : `<b class="num" title="It never gets in range of ${esc(ord.tag(t.id))} this round">—</b>`}`;
+      }
+      const g = ord.odds && ord.vs && !cover ? ord.fc(ord.vs, i) : null;
+      return `<u class="hold">${cover ? "cover" : "hold"}</u>${g ? `<b class="num ghost" title="On ${esc(ord.tag(ord.vs.id))}, if you aim it there">${g.p}%</b>` : "<b></b>"}`;
+    };
+    const head = `<li class="hd" aria-hidden="true"><span></span><span>Weapon</span><i>dmg · close/far</i><em></em><u>on</u><b>hit</b></li>`;
+    const actLine = () => {
+      if (!ord || !ord.act) return "";
+      const t = C.unit(B, ord.act.target), what = { kick: "Kick", punch: "Punch", satchel: "Satchel charge on", medkit: "Medkit for", cover: "Taking cover" }[ord.act.act];
+      return `<div class="h-row b-act"><span class="lbl">Also</span><span>${what}${ord.act.act === "cover" ? "" : " " + esc(t === u ? "self" : ord.tag(t.id) || t.name)}</span></div>`;
+    };
     if (u.kind === "mech") {
       const m = u.m, ch = PM.CHASSIS[m.ch], who = u.side === 0 ? S.chars[u.cid] : null;
       const heat = Math.min(1, m.heat / 30);
+      /* the heat this round would bring: moving, and every aimed weapon that gets its shot */
+      let peak = m.heat;
+      if (ord) { peak += ord.moveHeat; m.wpn.forEach((w, i) => { const t = aimed(i); if (t && C.armed(w) && ord.fc(t, i)) peak += PM.WEAPONS[w.w].heat; }); }
       const ws = m.wpn.map((w, i) => {
         const W = PM.WEAPONS[w.w];
-        let hit = "";
-        if (o.vs && !w.dead) {
-          const save = [u.x, u.y]; if (o.from) { u.x = o.from[0]; u.y = o.from[1]; }
-          const inR = C.weaponsAt(S, B, u, o.vs).some(x => x.i === i);
-          hit = inR ? `${C.hitChance(S, B, u, o.vs, w)}%` : "—";
-          u.x = save[0]; u.y = save[1];
-        }
-        return `<li class="${w.dead ? "dead" : ""}${o.sel && !o.sel.includes(i) ? " off" : ""}"><span>${esc(W.name)}</span><i>${W.n ? `${W.n}×${W.dmg}` : W.dmg} · ${W.range}</i>${W.ammo ? `<em class="num">${w.ammo}</em>` : "<em></em>"}${o.vs ? `<b class="num">${hit}</b>` : ""}</li>`;
+        return `<li class="${w.dead ? "dead" : ""}">${ord ? `<kbd>${i + 1}</kbd>` : ""}<span>${esc(W.name)}</span><i>${W.n ? `${W.n}×${W.dmg}` : W.dmg} · ${W.short}/${W.range}</i>${W.ammo ? `<em class="num" title="shots left">${w.ammo}</em>` : "<em></em>"}${ord ? aimCells(i, w.dead) : ""}</li>`;
       }).join("");
       return `<div class="h-uc"><div class="h-uh">${who ? UI.face(who.look, 2, who.name) : UI.img(PM.mechArt(m.ch, m.paint, 1, "stand", 0), 1, "px mface")}
         <div><b>${esc(u.name)}</b><span class="lbl">${esc(ch.name)} ${esc(ch.model)} · ${ch.tons}t${u.out ? " · " + esc(u.out) : u.shut > 0 ? " · shut down" : ""}</span></div></div>
-        <div class="h-ub">${H.doll(m, 54)}<div class="h-us"><div class="h-row"><span class="lbl">Heat</span>${bar(heat, heat > 0.6 ? "hot" : heat > 0.3 ? "warm" : "", 10)}<span class="num">${m.heat}</span></div>
+        <div class="h-ub">${H.doll(m, 54)}<div class="h-us"><div class="h-row"><span class="lbl">Heat</span>${bar(heat, heat > 0.6 ? "hot" : heat > 0.3 ? "warm" : "", 10)}<span class="num">${m.heat}</span>${ord && peak > m.heat ? `<span class="num b-peak${peak >= 20 ? " hot" : peak >= 14 ? " warm" : ""}" title="heat this round, before the sinks shed ${ch.sinks}; 20 and over risks a shutdown">→${peak}</span>` : ""}</div>
         <div class="h-row"><span class="lbl">Move</span><span class="num">${C.mp(u, "walk")}</span><span class="lbl">run</span><span class="num">${C.mp(u, "run")}</span>${ch.jump ? `<span class="lbl">jump</span><span class="num">${C.mp(u, "jump")}</span>` : ""}</div>
         ${who ? `<div class="h-row"><span class="lbl">Pilot</span><span>gun <b class="num">${who.skills.gun}</b> pilot <b class="num">${who.skills.pilot}</b></span></div>` : `<div class="h-row"><span class="lbl">Pilot</span><span>gun <b class="num">${u.pilot.gun}</b> pilot <b class="num">${u.pilot.pilot}</b></span></div>`}</div></div>
-        <ul class="h-ws">${ws}</ul></div>`;
+        <ul class="h-ws${ord ? " ord" : ""}">${ord ? head : ""}${ws}</ul>${actLine()}</div>`;
     }
-    const A = PM.ARMS[u.weapon] || PM.ARMS.fists, look = u.look;
+    const A = C.arms(u), look = u.look;
     const art = u.beast || u.machine ? UI.img(PM.creatureArt(u, 1, "stand", 0), 2, "px mface") : UI.face(look, 2, u.name);
-    let hit = "";
-    if (o.vs) { const save = [u.x, u.y]; if (o.from) { u.x = o.from[0]; u.y = o.from[1]; } const d = C.dist(u.x, u.y, o.vs.x, o.vs.y); hit = d <= A.range ? `${C.hitChance(S, B, u, o.vs)}%` : "—"; u.x = save[0]; u.y = save[1]; }
+    const reach = A.melee ? `${A.dmg} · 1` : `${A.dmg} · ${Math.floor(A.range / 2)}/${A.range}`;
     return `<div class="h-uc"><div class="h-uh">${art}<div><b>${esc(u.name)}</b><span class="lbl">${u.beast ? "beast" : u.machine ? "machine" : "on foot"}${u.out ? " · " + esc(u.out) : ""}</span></div></div>
       <div class="h-row"><span class="lbl">Health</span>${bar(Math.max(0, u.hp) / u.hpMax, u.hp < u.hpMax * 0.34 ? "low" : "", 10)}<span class="num">${Math.max(0, u.hp)}</span></div>
-      <ul class="h-ws"><li><span>${esc(A.name)}</span><i>${A.dmg} · ${A.range}</i><em></em>${o.vs ? `<b class="num">${hit}</b>` : ""}</li>
-      ${u.armor && u.armor !== "none" ? `<li><span>${esc(PM.ARMOR[u.armor].name)}</span><i>-${PM.ARMOR[u.armor].def}</i><em></em></li>` : ""}</ul></div>`;
+      <ul class="h-ws${ord ? " ord" : ""}">${ord ? head : ""}<li>${ord ? "<kbd>1</kbd>" : ""}<span>${esc(A.name)}</span><i>${reach}</i><em></em>${ord ? aimCells(0, false) : ""}</li>
+      ${u.armor && u.armor !== "none" ? `<li class="kit">${ord ? "<span></span>" : ""}<span>${esc(PM.ARMOR[u.armor].name)}</span><i>-${PM.ARMOR[u.armor].def}</i><em></em></li>` : ""}</ul>${actLine()}</div>`;
   };
 })();

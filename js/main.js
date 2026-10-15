@@ -407,16 +407,19 @@
     } else for (const [k, key] of [["up", "ArrowUp"], ["down", "ArrowDown"], ["left", "ArrowLeft"], ["right", "ArrowRight"]]) if (fresh(k)) send(key);
     if (fresh("a")) { if (document.activeElement && document.activeElement.click && UI.sheet) document.activeElement.click(); else send("Enter"); }
     if (fresh("b")) send("Escape");
-    if (fresh("start")) send("Escape");
+    /* Start: the menu, or in a fight, fight the round (Escape there would undo a leg) */
+    if (fresh("start")) send(game.mode === "battle" ? "g" : "Escape");
     if (fresh("y")) send(game.mode === "battle" ? "Tab" : "j");
     if (fresh("x")) send(game.mode === "battle" ? " " : "p");
     padPrev = now;
   }
 
-  /* ---- the stage, as big as fits, square pixels ---- */
+  /* ---- the stage, as big as fits, square pixels ----
+   * a whole-number scale whenever it fills three quarters of what a fractional
+   * one would: pixels of one size beat a few more of them, uneven */
   function fit() {
     const VW = PM.K.VW, VH = PM.K.VH, s0 = Math.min(innerWidth / VW, innerHeight / VH), si = Math.floor(s0);
-    const s = si >= 2 && si / s0 > 0.86 ? si : s0;
+    const s = si >= 2 && si / s0 >= 0.75 ? si : s0;
     const st = $("stage"), w = Math.floor(VW * s), h = Math.floor(VH * s);
     st.style.width = w + "px"; st.style.height = h + "px";
     st.style.left = Math.floor((innerWidth - w) / 2) + "px"; st.style.top = Math.floor((innerHeight - h) / 2) + "px";

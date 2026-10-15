@@ -6,20 +6,29 @@
  * party (the arena), with its trees, walls, water and buildings.
  *
  * Each round:
- *  1. Orders. For each of yours: where to go (walk, run, or jump), and
- *     what to do when there: fire on a target (all its weapons, or only
- *     those it can afford in heat), kick or punch, a satchel charge, a
- *     medkit, or take cover. The enemy decides too (PM.AI).
- *  2. Movement, everyone at once, quickest pilot first where two want the
- *     same tile.
- *  3. Fire, everyone at once: every shot is rolled from where everyone
- *     stood when the shooting started. Hits land in a location, armour
- *     first; a location shot through takes its weapons with it; a head or
- *     a centre torso shot through and the mech is finished, its pilot out.
- *     Pilots of a beaten mech may climb out and run (ejected): the mech is
- *     left standing, and can be salvaged.
- *  4. Heat: weapons and running heat a mech; its sinks shed so much a
- *     round. Run it hot and it shoots worse, walks slower, shuts down.
+ *  1. Orders. For each of yours: a route (walk, run, or jump; walking and
+ *     running routes may have several legs, and what is plotted past this
+ *     round's reach carries into the next), and a target for each weapon
+ *     (u.aim, kept from round to round until the target is gone). Besides,
+ *     a kick or punch, a satchel charge, a medkit, or (on foot) cover. The
+ *     enemy decides too (PM.AI).
+ *  2. The round plays in C.STEPS steps, everyone at once. Each unit spreads
+ *     its route over the round by what each tile costs it, so the quick
+ *     cover more ground in the same time; quickest pilot first where two
+ *     want the same tile. Each aimed weapon fires once a round, by itself:
+ *     at the first step its target is inside its short range, or, if that
+ *     never comes, at its best chance of the round. Closing in is how you
+ *     get the good shots. Shots of a step land together. Hits land in a
+ *     location, armour first; a location shot through takes its weapons
+ *     with it; a head or a centre torso shot through and the mech is
+ *     finished, its pilot out. Pilots of a beaten mech may climb out and
+ *     run (ejected): the mech is left standing, and can be salvaged.
+ *  3. Heat: weapons and moving heat a mech; its sinks shed so much a round.
+ *     Run it hot and it shoots worse, walks slower, shuts down. Standing
+ *     in water cools it.
+ * Moving is defence: the further a unit goes in a round the harder it is to
+ * hit, zig-zags and all, and the worse it aims. (The 1988 manual: "The more
+ * you move about, the less chance your enemies have of hitting you.")
  *
  * Every roll is PM.rand(S). PM.Combat.resolve returns "beats" -- moves,
  * shots, explosions, words -- for the screen to play; the state is already
@@ -67,7 +76,7 @@
         const pl = { ...(PM.PILOTS[u.pilot] || PM.PILOTS.line) };
         pl.gun += [-1, 0, 1][S.diff] || 0;
         if (u.damaged) for (const l of PM.LOCS) m.armor[l] = Math.round(m.armor[l] * u.damaged);
-        add(B, { side: 1, kind: "mech", name: u.name || `${PM.CHASSIS[u.ch].name}`, m, pilot: pl, x, y, f: 2, boss: !!u.boss, scripted: u.scripted || u.ch === "drone" });
+        add(B, { side: 1, kind: "mech", name: u.name || nick(S, B), m, pilot: pl, x, y, f: 2, boss: !!u.boss, scripted: u.scripted || u.ch === "drone" });
       } else {
         const F = PM.FOES[u.foe];
         add(B, { side: 1, kind: "foot", name: F.name, foe: u.foe, look: F.look, hp: F.hp, hpMax: F.hp, move: F.move, weapon: F.weapon, armor: F.armor,
@@ -81,7 +90,7 @@
   };
   const footOf = (c, side, x, y) => ({ side, kind: "foot", name: c.name.split(" ")[0], cid: c.id, look: c.look, hp: c.hp, hpMax: c.hpMax, move: c.move,
     weapon: c.weapon, armor: c.armor, x, y, f: 6 });
-  const add = (B, u) => { u.id = B.uid++; u.order = null; u.out = null; u.moved = 0; u.jumped = false; u.shut = 0; B.units.push(u); return u; };
+  const add = (B, u) => { u.id = B.uid++; u.order = null; u.out = null; u.moved = 0; u.jumped = false; u.shut = 0; u.aim = null; u.carry = null; B.units.push(u); return u; };
 
   /* free standing places near (cx, cy), for n units */
   const spots = (S, B, map, cx, cy, n, foe) => {
@@ -103,7 +112,15 @@
     const map = PM.getMap(B.map), x = B.ax + (B.aw >> 1) + G.roll(S, 9) - 4, y = edge === "north" ? B.ay + 1 : B.ay + B.ah - 2;
     const [sx, sy] = spots(S, B, map, x, y, 1, true)[0] || [x, y];
     const m = G.newMech(S, u.ch, u.paint || "wolf", { at: "battle" }), pl = { ...(PM.PILOTS[u.pilot] || PM.PILOTS.line) };
-    return add(B, { side: 1, kind: "mech", name: u.name || PM.CHASSIS[u.ch].name, m, pilot: pl, x: sx, y: sy, f: 2 });
+    return add(B, { side: 1, kind: "mech", name: u.name || nick(S, B), m, pilot: pl, x: sx, y: sy, f: 2 });
+  };
+  /* the cadet names every enemy mech in a fight: it beats "the second Howler from the left".
+   * Picked by the fight's number, not the dice, so the same seed still gives the same fight */
+  C.NICKS = ["Grumpy", "Big Ears", "Limpy", "Snout", "Tin Tail", "Old Grey", "Squeaky", "Lefty", "Patches", "Sulky", "Dent", "Biscuit", "Rattles", "Mopey", "Lumpy", "Smudge", "Wobbles", "Tuppence"];
+  const nick = (S, B) => {
+    const taken = new Set(B.units.map(u => u.name)), n = C.NICKS.length;
+    for (let i = 0; i < n; i++) { const k = C.NICKS[(S.stats.battles * 5 + B.uid * 7 + i) % n]; if (!taken.has(k)) return k; }
+    return "Another one";
   };
 
   /* ---- what a unit is and can do ---- */
@@ -134,21 +151,25 @@
     return C.isMech(u) ? t.m : t.f;
   };
   const occupied = (B, x, y, except) => B.units.some(u => !u.out && u !== except && u.x === x && u.y === y);
-  /* every tile it can reach this round: Map "x,y" -> { c cost, p previous key } */
-  C.reach = (B, u, mode) => {
-    const mp = C.mp(u, mode), out = new Map([[u.x + "," + u.y, { c: 0, p: null, x: u.x, y: u.y }]]);
+  /* every tile it can reach: Map "x,y" -> { c cost, p previous key }. From
+   * its own tile with this round's points, or from (fx, fy) -- the end of a
+   * leg already plotted -- with mp points: plotting past the round */
+  C.reach = (B, u, mode, fx = u.x, fy = u.y, mp = C.mp(u, mode)) => {
+    const out = new Map([[fx + "," + fy, { c: 0, p: null, x: fx, y: fy }]]);
     if (mp <= 0) return out;
     if (mode === "jump") {
-      for (let y = u.y - mp; y <= u.y + mp; y++) for (let x = u.x - mp; x <= u.x + mp; x++) {
-        if ((x === u.x && y === u.y) || C.cost(B, u, x, y) === 0 || occupied(B, x, y, u)) continue;
-        out.set(x + "," + y, { c: dist(u.x, u.y, x, y), p: u.x + "," + u.y, x, y });
+      for (let y = fy - mp; y <= fy + mp; y++) for (let x = fx - mp; x <= fx + mp; x++) {
+        if ((x === fx && y === fy) || C.cost(B, u, x, y) === 0 || occupied(B, x, y, u)) continue;
+        out.set(x + "," + y, { c: dist(fx, fy, x, y), p: fx + "," + fy, x, y });
       }
       return out;
     }
-    const q = [[u.x, u.y, 0]];
+    /* w: the cost with a hair more for a diagonal step, so of equal routes the straightest wins */
+    out.get(fx + "," + fy).w = 0;
+    const q = [[fx, fy, 0, 0]];
     while (q.length) {
-      q.sort((a, b) => a[2] - b[2]);
-      const [x, y, c] = q.shift();
+      q.sort((a, b) => a[2] - b[2] || a[3] - b[3]);
+      const [x, y, c, cw] = q.shift();
       for (const [dx, dy] of DIRS) {
         const nx = x + dx, ny = y + dy, k = C.cost(B, u, nx, ny);
         if (!k) continue;
@@ -156,14 +177,14 @@
         if (dx && dy && !C.cost(B, u, x + dx, y) && !C.cost(B, u, x, y + dy)) continue;
         /* through friends, never through foes */
         if (B.units.some(w => !w.out && w !== u && w.x === nx && w.y === ny && w.side !== u.side)) continue;
-        const nc = c + k, key = nx + "," + ny, prev = out.get(key);
-        if (nc > mp || (prev && prev.c <= nc)) continue;
-        out.set(key, { c: nc, p: x + "," + y, x: nx, y: ny });
-        q.push([nx, ny, nc]);
+        const nc = c + k, nw = cw + k + (dx && dy ? 0.001 : 0), key = nx + "," + ny, prev = out.get(key);
+        if (nc > mp || (prev && (prev.c < nc || (prev.c === nc && prev.w <= nw)))) continue;
+        out.set(key, { c: nc, w: nw, p: x + "," + y, x: nx, y: ny });
+        q.push([nx, ny, nc, nw]);
       }
     }
     /* nowhere to stop on top of someone */
-    for (const [k, v] of out) if (k !== u.x + "," + u.y && occupied(B, v.x, v.y, u)) out.delete(k);
+    for (const [k, v] of out) if (k !== fx + "," + fy && occupied(B, v.x, v.y, u)) out.delete(k);
     return out;
   };
   C.pathTo = (reach, x, y) => {
@@ -171,6 +192,38 @@
     let k = x + "," + y;
     while (k) { const v = reach.get(k); if (!v) return null; path.unshift([v.x, v.y]); k = v.p; }
     return path;
+  };
+  /* the tiles of a straight line, both ends in */
+  C.line = (x0, y0, x1, y1) => {
+    const n = dist(x0, y0, x1, y1), out = [[x0, y0]];
+    for (let i = 1; i <= n; i++) out.push([Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n)]);
+    return out;
+  };
+
+  /* ---- a round in steps ---- */
+  C.STEPS = 12;
+  /* a route spread over the round: the tiles it gets through this round
+   * (tiles[0] where it stands), the step it reaches each (at), and what is
+   * left for the next round (carry: from its last tile this round on) */
+  C.timing = (B, u, path, mode) => {
+    const out = { tiles: [path[0]], at: [0], carry: null };
+    const mp = C.mp(u, mode);
+    if (path.length < 2 || mp <= 0) return out;
+    if (mode === "jump") path = C.line(path[0][0], path[0][1], path[path.length - 1][0], path[path.length - 1][1]);
+    let cum = 0;
+    for (let i = 1; i < path.length; i++) {
+      cum += mode === "jump" ? 1 : C.cost(B, u, path[i][0], path[i][1]);
+      if (cum > mp) { if (mode !== "jump") out.carry = path.slice(i - 1); break; }
+      out.tiles.push(path[i]); out.at.push(Math.max(1, Math.ceil(cum / mp * C.STEPS - 1e-9)));
+    }
+    return out;
+  };
+  /* where a route has it at each step, 0..STEPS, nobody in the way */
+  C.track = (B, u, path, mode) => {
+    const tm = path && path.length > 1 ? C.timing(B, u, path, mode) : { tiles: [[u.x, u.y]], at: [0] }, out = [];
+    let k = 0;
+    for (let s = 0; s <= C.STEPS; s++) { while (k + 1 < tm.tiles.length && tm.at[k + 1] <= s) k++; out.push(tm.tiles[k]); }
+    return out;
   };
 
   /* is there a clear line from a to b? trees, walls of buildings and cliffs block it */
@@ -186,9 +239,13 @@
     return true;
   };
 
-  /* ---- the chance to hit, 5 to 95 ---- */
-  C.hitChance = (S, B, a, t, w, from) => {
-    const [ax, ay] = from || [a.x, a.y], d = dist(ax, ay, t.x, t.y);
+  /* ---- the chance to hit, 5 to 95 ----
+   * o.from: where the shooter stands, o.at: where the target does (their
+   * own tiles when not given); o.moved / o.mode: how the shooter moves
+   * this round (as it did, when not given) */
+  C.hitChance = (S, B, a, t, w, o = {}) => {
+    const [ax, ay] = o.from || [a.x, a.y], [tx, ty] = o.at || [t.x, t.y], d = dist(ax, ay, tx, ty);
+    const moved = o.moved ?? a.moved, mode = o.mode || (a.jumped ? "jump" : a.ran ? "run" : "walk");
     let p;
     if (C.isMech(a)) {
       const W = PM.WEAPONS[w.w];
@@ -205,20 +262,60 @@
       if (!A.melee && d > A.range / 2) p -= 12;
       if (C.isMech(t)) p += 22;
     }
-    /* how they moved */
-    if (a.moved) p -= a.jumped ? 15 : a.ran ? 10 : 4;
+    /* how they move this round: the further, the harder to hit and the worse the aim */
+    if (moved) p -= mode === "jump" ? 15 : mode === "run" ? 10 : 4;
     if (t.moved) p -= Math.min(12, t.moved * 2) + (t.jumped ? 8 : 0);
-    if (t.order && t.order.act === "defend") p -= 15;
+    if (t.order && t.order.act === "cover") p -= 15;
     if (t.shut > 0) p += 20;
-    p -= PM.TF[PM.tileAt(PM.getMap(B.map), t.x, t.y)].cover || 0;
+    p -= PM.TF[PM.tileAt(PM.getMap(B.map), tx, ty)].cover || 0;
     return Math.max(5, Math.min(95, Math.round(p)));
   };
-  /* the weapons it could fire at t this round, from where it will stand */
-  C.weaponsAt = (S, B, a, t, from) => {
+  /* the weapons it could fire at t, standing at from */
+  C.weaponsAt = (S, B, a, t, from, at) => {
     if (!C.isMech(a)) return [];
-    const [ax, ay] = from || [a.x, a.y];
-    if (!C.los(B, ax, ay, t.x, t.y)) return [];
-    return a.m.wpn.map((w, i) => ({ w, i })).filter(({ w }) => !w.dead && (!PM.WEAPONS[w.w].ammo || w.ammo > 0) && PM.WEAPONS[w.w].range >= dist(ax, ay, t.x, t.y));
+    const [ax, ay] = from || [a.x, a.y], [tx, ty] = at || [t.x, t.y];
+    if (!C.los(B, ax, ay, tx, ty)) return [];
+    return a.m.wpn.map((w, i) => ({ w, i })).filter(({ w }) => C.armed(w) && PM.WEAPONS[w.w].range >= dist(ax, ay, tx, ty));
+  };
+  C.armed = w => !w.dead && (!PM.WEAPONS[w.w].ammo || w.ammo > 0);
+  C.arms = u => PM.ARMS[u.weapon] || PM.ARMS.fists;
+  /* what a unit aims, weapon by weapon: target ids or null (holding fire) */
+  C.aims = u => {
+    const n = C.isMech(u) ? u.m.wpn.length : 1;
+    if (!u.aim || u.aim.length !== n) u.aim = Array.from({ length: n }, (_, i) => (u.aim && u.aim[i]) ?? null);
+    return u.aim;
+  };
+  /* inside its short range: where a weapon waits to fire */
+  C.close = (u, wi, d) => {
+    if (!C.isMech(u)) { const A = C.arms(u); return A.melee || d <= A.range / 2; }
+    const W = PM.WEAPONS[u.m.wpn[wi].w];
+    return d <= W.short && !(W.min && d < W.min);
+  };
+  /* can weapon wi of a reach t, a standing at pa and t at pt? */
+  C.canShoot = (B, a, wi, pa, pt) => {
+    const d = dist(pa[0], pa[1], pt[0], pt[1]);
+    if (C.isMech(a)) { const w = a.m.wpn[wi]; return C.armed(w) && d <= PM.WEAPONS[w.w].range && C.los(B, pa[0], pa[1], pt[0], pt[1]); }
+    const A = C.arms(a);
+    return d <= A.range && (A.melee || C.los(B, pa[0], pa[1], pt[0], pt[1]));
+  };
+  /* when in a round weapon wi fires, given where both are at each step
+   * (pa(s), pt(s)): the first step t is close, or failing that its best
+   * chance of the round, the earliest of equals. null: no shot at all */
+  C.pickStep = (S, B, a, t, wi, pa, pt, o = {}) => {
+    let best = null;
+    for (let s = 1; s <= C.STEPS; s++) {
+      const A = pa(s), T = pt(s);
+      if (!C.canShoot(B, a, wi, A, T)) continue;
+      const p = C.hitChance(S, B, a, t, C.isMech(a) ? a.m.wpn[wi] : null, { ...o, from: A, at: T });
+      if (C.close(a, wi, dist(A[0], A[1], T[0], T[1]))) return { s, p, close: true };
+      if (!best || p > best.p) best = { s, p, close: false };
+    }
+    return best;
+  };
+  /* for the orders screen: weapon wi on t, if u takes this route and t stands still */
+  C.forecast = (S, B, u, path, mode, t, wi) => {
+    const tr = C.track(B, u, path, mode), moved = path && path.length > 1 ? C.timing(B, u, path, mode).tiles.length - 1 : 0;
+    return C.pickStep(S, B, u, t, wi, s => tr[s], () => [t.x, t.y], { moved, mode });
   };
   /* the heat a set of weapons would cost, and what is cool enough to fire */
   C.coolSet = (a, list, moveHeat) => {
@@ -231,12 +328,12 @@
     }
     return out;
   };
-  C.moveHeat = (mode, n) => mode === "jump" ? Math.max(3, n) : mode === "run" ? 2 : n > 0 ? 1 : 0;
+  C.moveHeat = (mode, n) => n <= 0 ? 0 : mode === "jump" ? Math.max(3, n) : mode === "run" ? 2 : 1;
 
   /* ---- resolving a round ---- */
   C.resolve = (S, B) => {
     const beats = [];
-    const say = (text, k = "") => { B.log.push(text); beats.push({ t: "say", text, k }); };
+    const say = (text, k = "") => { B.log.push({ text, k }); beats.push({ t: "say", text, k }); };
     const live = C.live(B);
     B.phase = "resolve";
     /* the retreat: tried before anything else moves */
@@ -249,72 +346,126 @@
       say("They are on you: no way out this round.", "bad");
       for (const u of yours) u.order = { path: null, act: null };
     }
-    for (const u of live) { u.moved = 0; u.jumped = false; u.ran = false; }
-    /* 1. movement, quickest first */
+    const N = C.STEPS;
+    let step = 0;
+    /* every beat knows the step it happens in; the screen plays them so */
+    const stamp = from => { for (let i = from; i < beats.length; i++) if (beats[i].s == null) beats[i].s = step; };
+    stamp(0);
+    const before = new Map(live.map(u => [u, health(u)]));
+    /* 1. the routes: quickest pilot first where two want the same tile */
     const init = live.map(u => [u, (C.isMech(u) ? C.pilotOf(S, u).pilot : u.move) + R(S) * 6]).sort((a, b) => b[1] - a[1]).map(p => p[0]);
+    const run = new Map();
     for (const u of init) {
-      const o = u.order;
-      if (!o || !o.path || o.path.length < 2 || u.shut > 0) continue;
-      const path = [o.path[0]];
-      for (let i = 1; i < o.path.length; i++) {
-        const [x, y] = o.path[i];
-        /* someone got there first: stop short */
-        if (B.units.some(w => !w.out && w !== u && w.x === x && w.y === y) && i === o.path.length - 1) break;
-        if (B.units.some(w => !w.out && w !== u && w.side !== u.side && w.x === x && w.y === y)) break;
-        path.push([x, y]);
-      }
-      while (path.length > 1 && B.units.some(w => !w.out && w !== u && w.x === path[path.length - 1][0] && w.y === path[path.length - 1][1])) path.pop();
-      if (path.length < 2) continue;
-      const [ex, ey] = path[path.length - 1], [px, py] = path[path.length - 2];
-      u.f = C.dirTo(px, py, ex, ey);
-      u.moved = path.length - 1; u.jumped = o.mode === "jump"; u.ran = o.mode === "run";
-      u.x = ex; u.y = ey;
-      if (C.isMech(u)) u.m.heat += C.moveHeat(o.mode, u.moved);
-      beats.push({ t: "move", id: u.id, path, mode: o.mode || "walk" });
-      if (u.side === 0) xp(B, u, C.isMech(u) ? "pilot" : null);
+      const o = u.order || {}, mode = o.mode || "walk";
+      const tm = o.path && o.path.length > 1 && u.shut <= 0 && o.act !== "retreat" ? C.timing(B, u, o.path, mode) : null;
+      const r = { tm: tm && tm.tiles.length > 1 ? tm : null, mode, k: 0, x: u.x, y: u.y, arr: [0], P: [[u.x, u.y]] };
+      run.set(u, r);
+      u.moved = r.tm ? r.tm.tiles.length - 1 : 0; u.jumped = !!r.tm && mode === "jump"; u.ran = !!r.tm && mode === "run";
+      if (r.tm && C.isMech(u)) u.m.heat += C.moveHeat(mode, u.moved);
+      if (r.tm && u.side === 0) xp(B, u, C.isMech(u) ? "pilot" : null);
+      u.carry = null;
     }
-    /* 2. fire: everyone who stands when it starts gets their shots */
-    const firing = C.live(B).filter(u => u.order && u.order.act && u.order.act !== "defend" && u.order.act !== "retreat" && u.shut <= 0);
-    const strikes = [];
-    for (const a of firing) {
-      const o = a.order, t = o.target != null ? C.unit(B, o.target) : null;
-      if (o.act === "medkit") { strikes.push(() => medkit(S, B, a, t || a, beats, say)); continue; }
-      if (!t || t.out) { if (a.side === 0) say(`${a.name}: no target left.`); continue; }
-      if (t.side === a.side) continue;
-      a.f = C.dirTo(a.x, a.y, t.x, t.y);
-      if (o.act === "fire") {
-        if (C.isMech(a)) {
-          let list = C.weaponsAt(S, B, a, t);
-          if (o.wsel === "cool") list = C.coolSet(a, list, 0);
-          else if (Array.isArray(o.wsel)) list = list.filter(x => o.wsel.includes(x.i));
-          if (!list.length) { if (a.side === 0) say(`${a.name}: out of range.`); continue; }
-          for (const x of list) {
-            const W = PM.WEAPONS[x.w.w], hit = C.hitChance(S, B, a, t, x.w);
+    /* where everyone is, step by step: a foe in the way holds a walker up;
+     * nobody stops where someone already stands */
+    for (let s = 1; s <= N; s++) for (const u of init) {
+      const r = run.get(u);
+      if (r.tm) while (r.k + 1 < r.tm.tiles.length && r.tm.at[r.k + 1] <= s) {
+        const [nx, ny] = r.tm.tiles[r.k + 1], last = r.k + 2 === r.tm.tiles.length;
+        let held = false;
+        for (const [w, q] of run) if (w !== u && q.x === nx && q.y === ny && (last || (!u.jumped && w.side !== u.side))) held = true;
+        if (held) break;
+        r.k++; r.x = nx; r.y = ny; r.arr.push(s);
+      }
+      r.P[s] = [r.x, r.y];
+    }
+    /* two on a tile when it is over (one held up on a friend's): the slower backs off along its route */
+    for (const u of init.slice().reverse()) {
+      const r = run.get(u);
+      if (!r.tm) continue;
+      const taken = () => [...run].some(([w, q]) => w !== u && q.x === r.x && q.y === r.y);
+      let cut = null;
+      while (r.k > 0 && (taken() || !C.cost(B, u, r.x, r.y))) { cut = r.arr.pop(); r.k--; [r.x, r.y] = r.tm.tiles[r.k]; }
+      if (cut != null) for (let s = cut; s <= N; s++) r.P[s] = [r.x, r.y];
+      /* what is left of a walk or a run, for the next round */
+      if (r.mode !== "jump") {
+        const rest = r.k + 1 < r.tm.tiles.length ? u.order.path.slice(r.k) : r.tm.carry;
+        if (rest && rest.length > 1) { u.carry = rest; u.carryMode = r.mode; }
+      }
+    }
+    const pos = (u, s) => run.get(u).P[s];
+    /* the moves the screen plays: a jump in one arc, a walk tile by tile, each over the steps it takes */
+    const moves = [];
+    for (const u of init) {
+      const r = run.get(u);
+      if (!r.tm || r.k === 0) continue;
+      if (u.jumped) moves.push({ t: "move", id: u.id, path: r.tm.tiles.slice(0, r.k + 1), mode: "jump", s: 1, span: r.arr[r.k] });
+      else for (let j = 1; j <= r.k; j++) moves.push({ t: "move", id: u.id, path: [r.tm.tiles[j - 1], r.tm.tiles[j]], mode: r.mode, s: r.arr[j - 1] + 1, span: r.arr[j] - r.arr[j - 1] });
+    }
+    /* 2. when each weapon fires, and when a kick or a charge or a medkit can reach */
+    const plan = [];
+    for (const a of init) {
+      const o = a.order || {};
+      if (a.shut > 0 || o.act === "retreat" || o.act === "cover") continue;
+      C.aims(a).forEach((tid, wi) => {
+        const t = tid != null ? C.unit(B, tid) : null;
+        if (!t || t.out || t.side === a.side || !run.has(t)) return;
+        const pk = C.pickStep(S, B, a, t, wi, s => pos(a, s), s => pos(t, s));
+        if (pk) plan.push({ s: pk.s, a, t, wi, act: "fire" });
+      });
+      if (o.act && o.target != null) {
+        const t = C.unit(B, o.target);
+        if (!t || t.out || !run.has(t)) continue;
+        let s = 1;
+        while (s <= N && dist(...pos(a, s), ...pos(t, s)) > 1) s++;
+        if (s <= N) plan.push({ s, a, t, act: o.act });
+        else if (a.side === 0) say(o.act === "medkit" ? `${a.name} can't get to ${t.name} with the medkit.` : o.act === "satchel" ? `${a.name} never gets close enough to place the charge.` : `${a.name} never gets close enough to ${o.act}.`);
+      }
+    }
+    stamp(0);
+    /* 3. the round, step by step: everyone moves, then the step's shots land together */
+    const fired = new Set();
+    for (step = 1; step <= N; step++) {
+      const mark = beats.length;
+      for (const b of moves) if (b.s === step && !C.unit(B, b.id).out) beats.push(b);
+      for (const u of init) if (!u.out) { const [x, y] = pos(u, step); if (x !== u.x || y !== u.y) { u.f = C.dirTo(u.x, u.y, x, y); u.x = x; u.y = y; } }
+      const strikes = [];
+      for (const x of plan) {
+        if (x.s !== step || x.a.out || x.t.out) continue;
+        const { a, t } = x;
+        if (x.act !== "medkit") a.f = C.dirTo(a.x, a.y, t.x, t.y);
+        if (x.act === "fire") {
+          if (C.isMech(a)) {
+            const w = a.m.wpn[x.wi], W = PM.WEAPONS[w.w];
+            if (!C.armed(w)) continue;
+            const hit = C.hitChance(S, B, a, t, w);
             a.m.heat += W.heat;
-            if (W.ammo) x.w.ammo--;
-            strikes.push(() => mechShot(S, B, a, t, x.w, hit, beats, say));
+            if (W.ammo) w.ammo--;
+            strikes.push(() => mechShot(S, B, a, t, w, hit, beats, say));
+            if (!fired.has(a)) xp(B, a, "gun");
+          } else {
+            const A = C.arms(a), hit = C.hitChance(S, B, a, t);
+            strikes.push(() => footShot(S, B, a, t, A, hit, beats, say));
+            if (!fired.has(a)) xp(B, a, A.melee ? "melee" : "arms");
           }
-          xp(B, a, "gun");
-        } else {
-          const A = PM.ARMS[a.weapon] || PM.ARMS.fists, d = dist(a.x, a.y, t.x, t.y);
-          if (d > A.range || (!A.melee && !C.los(B, a.x, a.y, t.x, t.y))) { if (a.side === 0) say(`${a.name}: can't reach ${t.name}.`); continue; }
-          const hit = C.hitChance(S, B, a, t);
-          strikes.push(() => footShot(S, B, a, t, A, hit, beats, say));
-          xp(B, a, A.melee ? "melee" : "arms");
-        }
-      } else if (o.act === "kick" || o.act === "punch") {
-        if (dist(a.x, a.y, t.x, t.y) > 1) { if (a.side === 0) say(`${a.name} can't reach to ${o.act}.`); continue; }
-        strikes.push(() => physical(S, B, a, t, o.act, beats, say));
-        xp(B, a, "pilot");
-      } else if (o.act === "satchel") {
-        if (dist(a.x, a.y, t.x, t.y) > 1 || !C.isMech(t) || !(S.items.satchel > 0)) { say(`${a.name} can't place the charge.`); continue; }
-        S.items.satchel--;
-        strikes.push(() => satchel(S, B, a, t, beats, say));
+          fired.add(a);
+        } else if (x.act === "kick" || x.act === "punch") {
+          if (!C.isMech(a)) continue;
+          strikes.push(() => physical(S, B, a, t, x.act, beats, say));
+          xp(B, a, "pilot"); fired.add(a);
+        } else if (x.act === "satchel") {
+          if (!C.isMech(t) || !(S.items.satchel > 0)) { say(`${a.name} can't place the charge.`); continue; }
+          S.items.satchel--;
+          strikes.push(() => satchel(S, B, a, t, beats, say)); fired.add(a);
+        } else if (x.act === "medkit") strikes.push(() => medkit(S, B, a, t, beats, say));
       }
+      /* the order the shots of a step land in, shuffled, so no side always lands first */
+      for (let i = strikes.length - 1; i > 0; i--) { const j = Math.floor(R(S) * (i + 1)); [strikes[i], strikes[j]] = [strikes[j], strikes[i]]; }
+      for (const f of strikes) f();
+      /* within a step: the moves, then every shot, then what they did */
+      const part = beats.splice(mark);
+      beats.push(...part.filter(b => b.t === "move"), ...part.filter(b => b.t === "shot"), ...part.filter(b => b.t !== "move" && b.t !== "shot"));
+      stamp(mark);
     }
-    /* shuffle the order the shots land in a little, so no side always lands first */
-    for (let i = strikes.length - 1; i > 0; i--) { const j = Math.floor(R(S) * (i + 1)); [strikes[i], strikes[j]] = [strikes[j], strikes[i]]; }
-    for (const s of strikes) s();
     /* 3. heat, shutdowns, nerves */
     for (const u of C.live(B)) {
       if (!C.isMech(u)) continue;
@@ -323,7 +474,7 @@
       if (m.heat >= 26 && R(S) < 0.25) ammoBlast(S, B, u, beats, say, "Heat cooks off its ammunition");
       if (u.out) continue;
       if (m.heat >= 30 || (m.heat >= 20 && R(S) < 0.35)) { if (u.shut <= 0) { u.shut = 1; say(`${u.name} overheats and shuts down!`, "warn"); beats.push({ t: "shut", id: u.id }); } }
-      m.heat = Math.max(0, m.heat - ch.sinks);
+      m.heat = Math.max(0, m.heat - ch.sinks - (PM.tileAt(PM.getMap(B.map), u.x, u.y) === PM.T.WATER ? C.WATER_COOL : 0));
       /* the enemy's nerve: a pilot in a wreck may climb out */
       if (u.side === 1 && !u.boss && !u.scripted) {
         const ct = m.struct.CT / PM.structure(ch.tons).CT, legs = m.struct.LL <= 0 || m.struct.RL <= 0;
@@ -332,12 +483,40 @@
         }
       }
     }
-    for (const u of B.units) if (!u.out) u.order = null;
+    /* what came of it: a line for each of yours, as the cadet would put it */
+    for (const u of init) if (u.side === 0) { const line = C.summary(B, u, beats, before.get(u) - health(u)); if (line) say(line.text, line.k); }
+    /* orders are for a round; aims hold until their target is gone */
+    for (const u of B.units) if (!u.out) {
+      u.order = null;
+      if (u.aim) u.aim = u.aim.map(id => { const t = id != null ? C.unit(B, id) : null; return t && !t.out ? id : null; });
+    }
     B.round++;
     C.checkEnd(S, B, beats);
     if (!B.result) B.phase = "orders";
+    step = N + 1; stamp(0);
     return beats;
   };
+  /* what a unit has left to lose: plate and frame, or health */
+  const health = u => C.isMech(u) ? PM.LOCS.reduce((a, l) => a + Math.max(0, u.m.armor[l]) + Math.max(0, u.m.struct[l]), 0) : Math.max(0, u.hp);
+  /* a unit's round in a line: what it hit, what it took. Dry, because the cadet is */
+  const MISSES = ["all of it into the scenery", "nothing touched them", "the trees are taking a beating", "warning shots, apparently", "a lot of noise for nothing"];
+  C.summary = (B, u, beats, took) => {
+    const mine = beats.filter(b => b.t === "shot" && b.from === u.id && b.kind !== "satchel");
+    const hits = mine.filter(b => b.hit), dealt = hits.reduce((a, b) => a + (b.dmg || 0), 0);
+    const names = [...new Set(hits.map(b => C.unit(B, b.to)).filter(Boolean).map(t => t.name))];
+    const list = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
+    let text;
+    if (u.out && !mine.length) text = null;
+    else if (!mine.length) text = u.order && u.order.act === "cover" ? `${u.name}: kept low.` : u.order && u.order.act === "retreat" ? null : `${u.name}: never got a shot.`;
+    else if (mine.length === 1) text = hits.length ? `${u.name}: one shot, on ${list}. ${dealt} damage.` : `${u.name}: one shot, wide.`;
+    else if (!hits.length) text = `${u.name}: ${mine.length} shots, ${MISSES[(B.round + u.id) % MISSES.length]}.`;
+    else if (hits.length === mine.length) text = `${u.name}: everything landed on ${list}. ${dealt} damage.`;
+    else text = `${u.name}: ${hits.length} of ${mine.length} on ${list}, ${dealt} damage.`;
+    if (took > 0) text = (text ? text + " " : `${u.name}: `) + (took >= 20 ? `Took ${took}. That one hurt.` : `Took ${took}.`);
+    return text ? { text, k: "sum" } : null;
+  };
+  /* heat a mech standing in water sheds, over its sinks */
+  C.WATER_COOL = 5;
   C.checkEnd = (S, B, beats) => {
     const mine = C.live(B).filter(u => u.side === 0), theirs = C.live(B).filter(u => u.side === 1);
     if (!theirs.length) { B.result = "won"; B.phase = "over"; beats && beats.push({ t: "end" }); }
@@ -441,7 +620,7 @@
     let d = A.dmg + Math.floor(R(S) * 3) - 1;
     if (a.side === 0 && A.melee) d += Math.floor(C.footSkill(S, a, true) / 3);
     beats.push({ t: "shot", from: a.id, to: t.id, kind, hit: true, dmg: d });
-    if (C.isMech(t)) { damageMech(S, B, t, locRoll(S), Math.max(1, Math.round(d / 5)), beats, say); return; }
+    if (C.isMech(t)) { const md = Math.max(1, Math.round(d / 5)); beats[beats.length - 1].dmg = md; damageMech(S, B, t, locRoll(S), md, beats, say); return; }
     hurt(S, B, t, d, beats, say);
   };
   const physical = (S, B, a, t, how, beats, say) => {
