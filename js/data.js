@@ -119,6 +119,10 @@
     ["medic", "Medic", "Wounds: dressed after a fight, and medkits that do more."],
   ];
   PM.SKILL_NAME = Object.fromEntries(PM.SKILLS.map(([k, n]) => [k, n]));
+  /* the Training Hall's lessons: the cadet's, before the graduation run (any
+   * left over keep), and each recruit's once the Bastion is taken back */
+  PM.CADET_LESSONS = 3;
+  PM.RECRUIT_LESSONS = 2;
 
   /* ---- who they are ---- */
   PM.SPECIES = {

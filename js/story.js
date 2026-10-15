@@ -103,7 +103,8 @@
     if (!f.invaded) {
       const n = (f.sortie1 ? 1 : 0) + (f.sortie2 ? 1 : 0);
       if (!f.metFather) return "Report to Commander Sunclaw in the Command building, north of the parade ground.";
-      return `Learn what you can in the Training Hall (east), then fly your sorties from the Hangar: ${n} of 3 flown.`;
+      const left = G.cadetLessonsLeft(S);
+      return `${left ? `Take your lessons in the Training Hall (east): ${left} left. Then fly` : "Fly"} your sorties from the Hangar: ${n} of 3 flown.`;
     }
     if (!f.relay) return "Get to Portgate, south-east across the river. Pip said to meet at the Rusty Lantern; the Relay may have word from your father.";
     if (!f.metBrock) return "Find Brock Tunnelson in Kiln Hollow, south-west across the bridge, and show him the signet.";
