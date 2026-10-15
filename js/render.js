@@ -201,15 +201,18 @@
       if (d.gone) continue;
       let x = d.x, y = d.y, pose = "stand", fr = 0;
       if (d.anim && d.anim.path.length > 1) {
-        const k = Math.max(0, Math.min(1, (now - d.anim.t0) / d.anim.dur)), path = d.anim.path, segs = path.length - 1;
+        /* walks keep the round's clock (view.clock), which stands still while a volley plays */
+        const k = Math.max(0, Math.min(1, ((view.clock ?? now) - d.anim.t0) / d.anim.dur)), path = d.anim.path, segs = path.length - 1;
         const s = Math.min(segs - 1, Math.floor(k * segs)), kk = k * segs - s;
         const [x0, y0] = path[s], [x1, y1] = path[s + 1];
         x = lerp(x0, x1, kk); y = lerp(y0, y1, kk);
+        d.rx = x; d.ry = y;
         if (d.anim.jump) y -= Math.sin(k * Math.PI) * 1.4;
         d.f = PM.Combat.dirTo(x0, y0, x1, y1);
         pose = "walk"; fr = Math.floor(k * segs * 4) & 3;
         if (k >= 1) { d.x = path[segs][0]; d.y = path[segs][1]; d.anim = null; x = d.x; y = d.y; pose = "stand"; }
       }
+      if (!d.anim) { d.rx = d.x; d.ry = d.y; }
       let c;
       if (u.kind === "mech") {
         const m = u.m, wreck = d.out === "destroyed" || d.out === "head";

@@ -243,7 +243,7 @@ button.switch { min-width: 84px; }
 #hud .h-hint { left: auto; right: 112px; bottom: 16px; font-size: 14px; color: var(--hud-muted); }
 .h-sep { width: 1px; height: 18px; background: var(--hud-hair); }
 /* ---- in a fight ---- */
-#hud .b-card { top: 16px; width: 290px; padding: 12px 14px; }
+#hud .b-card { top: 16px; width: 332px; padding: 12px 14px; }
 #b-active { left: 16px; }
 #b-target { right: 16px; }
 #hud #b-round { top: 16px; left: 50%; transform: translateX(-50%); }
@@ -254,7 +254,11 @@ button.switch { min-width: 84px; }
 #b-log p { margin: 0; color: var(--hud-muted); }
 #b-log p:last-child { color: var(--hud-text); }
 #b-log p.go { color: #b9dca6; } #b-log p.bad { color: #ff9475; } #b-log p.warn { color: #f3cf92; }
-#hud #b-keys { left: auto; right: 112px; bottom: 16px; font-size: 14px; color: var(--hud-muted); }
+/* the cadet's word on each round, and the sergeant's drill on the first fight */
+#b-log p.sum { color: var(--hud-text); } #b-log p.tip { color: #a9d3e8; }
+#b-log[hidden] { display: none; }
+#hud #b-keys { left: auto; right: 112px; bottom: 16px; font-size: 14px; color: var(--hud-muted); height: auto; min-height: 40px; padding: 6px 14px; white-space: normal; flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; max-width: calc(100% - 540px); }
+#b-keys i { font-style: normal; color: #f3cf92; }
 .h-uc .h-uh { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
 .h-uc .h-uh b { display: block; font-size: 17px; line-height: 1.15; }
 .h-uc img.face, .h-uc img.mface { display: block; border-radius: 3px; background: rgba(0,0,0,.25); }
@@ -267,7 +271,22 @@ button.switch { min-width: 84px; }
 .h-ws li em { font-style: normal; font-family: var(--px); font-size: 12px; color: #e8c65c; text-align: right; }
 .h-ws li b { text-align: right; color: #e9e4d8; }
 .h-ws li.dead { text-decoration: line-through; opacity: .45; }
-.h-ws li.off { opacity: .45; }
+/* the one giving orders: key, weapon, damage and short/long range, ammo, aimed at, chance this round */
+.h-ws.ord li { grid-template-columns: 22px 1fr auto 22px 30px 44px; }
+/* the little header over an orders card's weapons */
+.h-ws li.hd > * { font: 600 11px/1.4 var(--hud-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--hud-muted); }
+.h-ws li.hd b, .h-ws li.hd u { color: var(--hud-muted); }
+.h-ws.ord kbd { margin: 0; padding: 2px 4px; text-align: center; }
+.h-ws li u { text-decoration: none; text-align: center; font-family: var(--px); font-size: 12px; color: #ff9475; }
+.h-ws li u.hold { color: var(--hud-muted); }
+/* a held weapon's chance on the enemy under the cursor: what a number key would buy */
+.h-ws li b.ghost { color: var(--hud-muted); font-weight: 400; }
+.h-ws li b.ghost::before { content: "("; } .h-ws li b.ghost::after { content: ")"; }
+.h-ws li b.close { color: #b9dca6; }
+.b-peak { color: var(--hud-muted); } .b-peak.warm { color: #f3cf92; } .b-peak.hot { color: #ff9475; }
+.b-act { margin-top: 6px; font-size: 14px; }
+.b-tag { position: absolute; top: 10px; right: 14px; font: 400 18px/1 var(--px); color: #ff9475; }
+.b-tag.mine { font: 600 12px/1 var(--hud-ui); letter-spacing: .14em; text-transform: uppercase; color: #9fcf88; top: 14px; }
 svg.doll { flex: none; display: block; }
 /* ---- the sheets this game adds ---- */
 .pm-sheet.talk .sh-box { width: min(760px, 100%); }

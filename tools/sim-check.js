@@ -49,6 +49,50 @@ for (let seed = 1; seed <= seeds; seed++) {
     ok(B2.result === B.result && r2 === rounds, `seed ${seed} ${grp.name}: deterministic`);
   }
 }
+/* the round in steps: weapons wait for a close shot, aim at more than one foe, routes carry over */
+{
+  const S = party(11, ["tabby"]);
+  const B = C.start(S, { name: "steps", units: [{ t: "mech", ch: "bulwark", pilot: "green" }, { t: "mech", ch: "gnat", pilot: "green" }] }, { map: "world", cx: 60, cy: 30 });
+  const [me, a, b] = B.units;
+  /* clear ground, everyone placed by hand */
+  const map = PM.getMap(B.map), open = (x, y) => PM.TF[PM.tileAt(map, x, y)].m === 1 && PM.TF[PM.tileAt(map, x, y)].los === false;
+  let row = null;
+  for (let y = B.ay + 2; y < B.ay + B.ah - 2 && !row; y++) for (let x = B.ax; x + 12 < B.ax + B.aw && !row; x++) {
+    let okRow = true; for (let i = 0; i <= 12; i++) if (!open(x + i, y) || !open(x + i, y + 1)) okRow = false;
+    if (okRow) row = [x, y];
+  }
+  ok(!!row, "steps: found open ground for the test");
+  if (row) {
+    const [x0, y0] = row;
+    me.x = x0; me.y = y0; a.x = x0 + 10; a.y = y0; b.x = x0 + 9; b.y = y0 + 1;
+    me.m.heat = 0;
+    const route = []; for (let i = 0; i <= 8; i++) route.push([x0 + i, y0]);
+    /* heavy laser on the Bulwark (A), the rest on the Gnat (B); a route of 8 for a walker of 4 */
+    me.aim = me.m.wpn.map((w, i) => i === 0 ? a.id : b.id);
+    me.order = { path: route, mode: "walk", act: null, target: null };
+    a.order = { path: null, act: null }; b.order = { path: null, act: null }; a.aim = [null, null, null, null]; b.aim = [null, null, null];
+    const W = PM.WEAPONS.hlaser, tm = C.timing(B, me, route, "walk");
+    /* where the close shot comes: the first step it is within the heavy laser's short range */
+    let expect = null; for (let s = 1; s <= C.STEPS && expect == null; s++) { const p = C.track(B, me, route, "walk")[s]; if (C.dist(p[0], p[1], a.x, a.y) <= W.short) expect = s; }
+    const beats = C.resolve(S, B);
+    const shots = beats.filter(x => x.t === "shot" && x.from === me.id);
+    ok(tm.tiles.length === 5 && me.carry && me.carry.length === 5, `steps: walk of 4 gets 4 tiles and carries 4 (${tm.tiles.length - 1}, ${me.carry && me.carry.length - 1})`);
+    ok(shots.some(x => x.to === a.id) && shots.some(x => x.to === b.id), "steps: weapons fire at two different targets");
+    const hl = shots.find(x => x.to === a.id);
+    ok(hl && (expect == null ? hl.s >= 1 : hl.s === expect), `steps: heavy laser waits for short range (step ${hl && hl.s}, expected ${expect})`);
+    ok(beats.filter(x => x.t === "move" && x.id === me.id).length === 4, "steps: the walk plays tile by tile");
+    ok(me.aim[0] === (a.out ? null : a.id), "steps: aims hold into the next round");
+  }
+  /* a weapon with nothing it can reach costs no heat */
+  const S2 = party(12, ["tabby"]);
+  const B2 = C.start(S2, { name: "far", units: [{ t: "mech", ch: "drone", pilot: "green" }] }, { map: "world", cx: 60, cy: 30 });
+  const [m2, d2] = B2.units;
+  d2.x = B2.ax + B2.aw - 1; d2.y = B2.ay; m2.x = B2.ax; m2.y = B2.ay + B2.ah - 1; m2.m.heat = 0;
+  m2.aim = m2.m.wpn.map((w, i) => PM.WEAPONS[w.w].range < 6 ? d2.id : null);
+  m2.order = { path: null, act: null }; d2.order = { path: null, act: null }; d2.aim = [null];
+  C.resolve(S2, B2);
+  ok(m2.m.heat === 0, `steps: no shot, no heat (${m2.m.heat})`);
+}
 /* the world: towns' doors stand on building tiles, the start is walkable */
 const W = PM.maps.world;
 ok(PM.TF[PM.tileAt(W, W.start.x, W.start.y)].walk, "start walkable");

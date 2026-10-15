@@ -20,10 +20,10 @@ Gather a lance of misfits: Pip the raccoon cadet, Mags the bear mercenary, Brack
 
 ### Fights
 
-Fights are **rounds of orders**, as in 1988. For each of your people and mechs: where to move (walk, run, or jump), then what to do there (fire on a target, kick or punch, a satchel charge, a medkit, take cover). Then the round plays out, everyone at once.
+Fights are **rounds of orders**, as in 1988. For each of your people and mechs: a route (walk, run, or jump; several legs if you like, and what is plotted past this round's reach carries into the next), then a target for **each weapon**, and maybe a kick or punch, a satchel charge, a medkit, or cover. Then the round plays out in twelve steps, everyone moving at once, and **every weapon fires on its own**: at the first step its target is inside its short range, or, if that never comes, at its best chance of the round. Getting close is how you get the good shots. Moving is defence: the further a unit goes in a round, the harder it is to hit and the worse it aims. Aims hold from round to round until the target is gone.
 
 - Mechs are hit in a **location** (head, torsos, arms, legs): armour first, then the frame. Shoot a location away and its weapons go with it. A head or a centre torso shot through finishes a mech; your pilot ejects and fights on foot.
-- Weapons and running make **heat**; the sinks shed some each round. A hot mech aims worse, walks slower, and shuts down.
+- Weapons and running make **heat**; the sinks shed some each round, more standing in water. A hot mech aims worse, walks slower, and shuts down.
 - Beat a mech without blowing it apart -- its pilot ejects, or its legs go -- and you **salvage** it: it is hauled to the yard, to repair and pilot, or to sell.
 - Your Tech patches armour after a fight, your Medic dresses wounds, and everyone learns a little from what they did.
 
@@ -32,11 +32,11 @@ Fights are **rounds of orders**, as in 1988. For each of your people and mechs: 
 | | |
 |---|---|
 | Arrows, WASD | walk; in a fight, move the cursor |
-| `Enter`, `Space` | talk, choose; in a fight, confirm, or stand still |
+| `Enter`, `Space` | talk, choose; in a fight, lay a leg or aim everything, and finish a step |
 | `P` `J` `Tab` | the party, the journal, the map |
 | `Esc` | the menu; in a fight, back a step |
 | `M` | sound |
-| In a fight | `R` run, `J` jump, `Tab` next target, `F` fire everything or only what's cool, `K` kick, `U` punch, `X` satchel, `H` medkit, `D` cover, `A` let the unit decide, `Q` retreat |
+| In a fight | `R` run, `J` jump, `Backspace` clear the route, `Tab` next enemy, `1`-`9` one weapon on it, `0` hold fire, `K` kick, `U` punch, `X` satchel, `H` medkit, `D` cover, `A` let the unit decide, `G` fight the round, `Q` retreat |
 
 The mouse works in a fight (hover moves the cursor, a click chooses). A gamepad works too. It is a desktop game: on a phone or a small window the page says so instead.
 
