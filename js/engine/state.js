@@ -62,6 +62,11 @@
   G.lance = S => S.mechs.filter(m => m.at === "lance");
   G.mechOf = (S, cid) => S.mechs.find(m => m.at === "lance" && m.pilot === cid) || null;
   G.bestSkill = (S, k) => Math.max(0, ...G.partyChars(S).filter(c => c.hp > 0).map(c => c.skills[k] || 0));
+  /* Training Hall lessons someone has left: the cadet's never expire, each recruit has their own */
+  G.lessonsLeft = (S, c) => Math.max(0, c.id === "hero" ? PM.CADET_LESSONS - (S.flags.cadetLessons || 0) : PM.RECRUIT_LESSONS - (c.hallLessons || 0));
+  G.spendLesson = (S, c) => { if (c.id === "hero") S.flags.cadetLessons = (S.flags.cadetLessons || 0) + 1; else c.hallLessons = (c.hallLessons || 0) + 1; };
+  /* lessons the cadet has left before graduation; once the Pact lands, nothing to graduate from */
+  G.cadetLessonsLeft = S => S.flags.invaded ? 0 : G.lessonsLeft(S, S.chars.hero);
   G.techDiscount = S => 1 - Math.min(0.4, G.bestSkill(S, "tech") * 0.05);
 
   /* ---- a new game ---- */

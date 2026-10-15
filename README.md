@@ -12,7 +12,7 @@ No install required. Plain scripts, no build step, nothing fetched at play time:
 
 ## How it plays
 
-You are a third-year cadet at the **Bastion**, the mech academy of Pardalis, and the commander's child. Take lessons in the Training Hall (Gunnery, Piloting, Small arms, Melee, Tech, Medic: a day each), then fly three sorties in your **Tabby** trainer from the Hangar. The third is the graduation run. It is also the morning the **Grey Pact** lands.
+You are a third-year cadet at the **Bastion**, the mech academy of Pardalis, and the commander's child. Take lessons in the Training Hall (Gunnery, Piloting, Small arms, Melee, Tech, Medic: three lessons before graduation, spent as you like; each recruit gets two once you retake the Bastion), then fly three sorties in your **Tabby** trainer from the Hangar. The third is the graduation run. It is also the morning the **Grey Pact** lands.
 
 Then you are on your own in an occupied world: **Portgate** and its Pact-held spaceport, **Fernwick** in the woods, **Kiln Hollow** in the badlands, and the snow of the **High Spurs**. Walk the map a tile at a time. Walk into a door to go in and into someone to talk. Towns have inns to rest and save, shops, a mech yard, a bank with a **stock exchange** whose prices move every morning and hard on the news, a gym, a clinic, and people with something to say. In the wilds you will be found: by scrub drakes, stoat raiders, and the Pact's patrols and lances.
 

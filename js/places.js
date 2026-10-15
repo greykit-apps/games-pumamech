@@ -16,6 +16,7 @@
     banker: "banker", capy: "capy", hedge: "hedge", inn: "innM", coach: "coach", aunt: "aunt", elder: "elder", owl: "instrO", hare: "instrH", badger: "instrX" };
   const hero = () => St().chars.hero;
   const first = c => c.name.split(" ")[0];
+  const words = (n, cap) => { const w = ["no", "one", "two", "three", "four", "five", "six"][n] ?? String(n); return cap ? w[0].toUpperCase() + w.slice(1) : w; };
   const join = async id => {
     const S = St();
     if (S.party.includes(id)) return;
@@ -74,29 +75,30 @@
     });
   };
 
-  /* lessons: pick who, and what; a day each */
-  P.train = (title, ownerLook, intro, priceOf, cap) => {
+  /* lessons: pick who, and what; the Training Hall's are counted per person (o.budget) */
+  P.train = (title, ownerLook, intro, priceOf, cap, o = {}) => {
     const S = St();
     let who = S.party[0];
+    const left = c => o.budget ? G.lessonsLeft(S, c) : Infinity;
     UI.open(title, { wide: true,
       html: () => {
-        const c = S.chars[who];
+        const c = S.chars[who], n = left(c), none = n <= 0;
         return `<div class="shopkeep">${UI.face(ownerLook, 3)}<p>${intro}</p></div>
-          <div class="row">${G.partyChars(S).map(p => `<button class="pill${p.id === who ? " on" : ""}" data-who="${p.id}">${esc(first(p))}</button>`).join("")}</div>
-          <p class="meta">${esc(c.name)} · you have <b>${cr(S.money)}</b> · ${G.clock(S)}</p>
+          <div class="row">${G.partyChars(S).map(p => `<button class="pill${p.id === who ? " on" : ""}" data-who="${p.id}">${esc(first(p))}${o.budget ? ` <span class="note">${left(p)}</span>` : ""}</button>`).join("")}</div>
+          <p class="meta">${esc(c.name)} · you have <b>${cr(S.money)}</b>${o.budget ? ` · <b>${n}</b> ${n === 1 ? "lesson" : "lessons"} left${S.flags.invaded ? "" : " before graduation"}` : ""}</p>
           <table class="shop"><tbody>${PM.SKILLS.map(([k, n, d]) => {
             const lv = c.skills[k], price = priceOf(lv), maxed = lv >= cap;
             return `<tr><td><b>${n}</b> <span class="num">${lv}</span><span class="note"> · ${d}</span></td><td class="num">${maxed ? "—" : price ? cr(price) : "free"}</td>
-              <td><button data-learn="${k}" ${maxed || S.money < price ? "disabled" : ""}>${maxed ? "As far as here goes" : "A day's lesson"}</button></td></tr>`;
+              <td><button data-learn="${k}" ${maxed || none || S.money < price ? "disabled" : ""}>${maxed ? "As far as here goes" : none ? "No lessons left" : "Take the lesson"}</button></td></tr>`;
           }).join("")}</tbody></table>`;
       },
       onClick: (b, api) => {
         if (b.dataset.who) { who = b.dataset.who; api.refresh(); return; }
         if (b.dataset.learn) {
           const c = S.chars[who], k = b.dataset.learn, price = priceOf(c.skills[k]);
-          if (S.money < price || c.skills[k] >= cap) return;
+          if (S.money < price || c.skills[k] >= cap || left(c) <= 0) return;
           S.money -= price; c.skills[k]++;
-          G.advance(S, 24);
+          if (o.budget) G.spendLesson(S, c);
           if (S.flags.lessons !== undefined) S.flags.lessons++; else S.flags.lessons = 1;
           PM.SFX.play("goal");
           game().toast(`${first(c)}: ${PM.SKILL_NAME[k]} ${c.skills[k]}`, "green");
@@ -225,7 +227,7 @@
       f.metFather = true;
       await say([
         { who: "Commander Rane Sunclaw", look: L.father, text: [`"Cadet ${esc(h.name)}." Your father doesn't look up from the map table straight away; he never does. "At ease. In here I'm the Commander and you're a third-year with a Tabby signed out in your name. Out there I'm your father. Don't mix them up and we'll get on."`] },
-        { who: "Commander Rane Sunclaw", look: L.father, text: [`"Three sorties stand between you and your wings. Drones, then a pack of drones, then the graduation run. The Hangar keeps the board."`, `"Before that: the Training Hall. Lessons are free for cadets and cost you a day each. Gunnery and Piloting will keep you alive in a mech. Small arms and Melee keep you alive out of one, which is where most pilots die. Tech and Medic keep everyone else alive."`] },
+        { who: "Commander Rane Sunclaw", look: L.father, text: [`"Three sorties stand between you and your wings. Drones, then a pack of drones, then the graduation run. The Hangar keeps the board."`, `"Before that: the Training Hall. Lessons are free for cadets, and there's time for ${words(PM.CADET_LESSONS)} before graduation: spend them well. Gunnery and Piloting will keep you alive in a mech. Small arms and Melee keep you alive out of one, which is where most pilots die. Tech and Medic keep everyone else alive."`] },
         { who: "Commander Rane Sunclaw", look: L.father, text: [`He finally looks up. "And keep your ears open. The Pact's been sniffing round the edge of the system for a month. Probably nothing." He says it the way he says everything is probably nothing.`] },
       ]);
     } else await say([{ who: "Commander Rane Sunclaw", look: L.father, text: [f.sortie2 ? `"One more sortie, cadet. Make it clean." He taps a signet ring on the map table without seeming to notice he's doing it.` : `"Lessons, then sorties. The Hangar's on the east side of the parade ground." He goes back to his map: the High Spurs, you notice, ringed in grease pencil.`] }]);
@@ -239,7 +241,7 @@
   };
   V.b_hall = () => {
     const S = St();
-    P.train("Training Hall", L.dorran, S.flags.invaded ? `Sergeant Dorran Ashgrove is back at his post as if nothing happened. "Lessons are still free for cadets. Even graduated-by-invasion ones."` : `Sergeant Dorran Ashgrove runs the Hall like a drill field. "One lesson a day, cadet. Pick something you're bad at."`, () => 0, 6);
+    P.train("Training Hall", L.dorran, S.flags.invaded ? `Sergeant Dorran Ashgrove is back at his post as if nothing happened. "Lessons are still free. ${words(PM.RECRUIT_LESSONS, true)} apiece for your recruits, and whatever you skipped before graduation. The Pact won't wait for more."` : `Sergeant Dorran Ashgrove runs the Hall like a drill field. "There's time for ${words(PM.CADET_LESSONS)} lessons before your graduation run, cadet. Pick something you're bad at."`, () => 0, 6, { budget: true });
   };
   V.b_mess = async () => {
     const S = St();
@@ -254,6 +256,11 @@
     const next = !f.sortie1 ? "sortie1" : !f.sortie2 ? "sortie2" : "sortie3";
     const words = { sortie1: "Sortie one: two target drones out on the south range. They shoot back with training lasers -- it stings, it won't kill you.", sortie2: "Sortie two: three drones, one of them set to Line. Keep moving and use the trees.", sortie3: "Sortie three: the graduation run. Two drones and your father watching from the tower. Make it clean." }[next];
     const c = await say([{ who: "Hangar chief Tamsin Burrow", look: L.badger, text: [`Your Tabby's on the gantry, patched and cooled. "${esc(words)}"`, `<span class="note">In a fight, give each mech its orders -- where to move, then what to shoot -- and the round plays out. Enter chooses, Space stands still, R runs.</span>`], choices: [["Fly the sortie", "go"], ["Not yet", null]] }], { title: "Hangar" });
+    const owed = G.cadetLessonsLeft(S);
+    if (c === "go" && next === "sortie3" && owed) {
+      const w = await say([{ who: "Hangar chief Tamsin Burrow", look: L.badger, text: [`She doesn't lower the gantry. "Ashgrove tells me you've still got ${owed === 1 ? "a lesson" : `${owed} lessons`} waiting at the Training Hall. You really should go to class before the graduation run, cadet."`], choices: [["Go to class first", null], ["Fly anyway", "go"]] }], { title: "Hangar" });
+      if (w !== "go") return done();
+    }
     if (c === "go") { UI.close(true); game().storyBattle(next, { party: [{ cid: "hero", mech: tabby.uid }], cx: 22, cy: 49 }); return; }
     done();
   };
@@ -453,7 +460,7 @@
       cadetF: [{ who: "A cadet", look: "civ0", text: ["\"The Tabby's slow but she's got a heavy laser. Get close and let it rip. Mind your heat, though: hot mechs miss.\""] }],
       cadetO: [{ who: "A cadet", look: "civ3", text: ["\"Did you see the Commander's face at breakfast? Something's up. My cousin on the landing field says the Pact's been running ships in and out of the outer system all week.\""] }],
       gate: [{ who: "Gate Sergeant", look: "instrX", text: ["\"Nobody leaves until graduation, Sunclaw. Not even you.\""] }],
-      freedB: [{ who: "Sgt. Dorran Ashgrove", look: L.dorran, text: ["\"You took it back.\" He looks round at the Bastion, the smoke still clearing. \"Hall's open again, cadet. Lessons are free. They always were for Sunclaws.\""] }],
+      freedB: [{ who: "Sgt. Dorran Ashgrove", look: L.dorran, text: [`"You took it back." He looks round at the Bastion, the smoke still clearing. "Hall's open again, cadet. Bring your recruits: ${words(PM.RECRUIT_LESSONS)} lessons each, free. They always were for Sunclaws."`] }],
       pactB1: null, pactB2: null,
     }[n.id];
     if (n.id === "pipB") f.pipTold = true;
