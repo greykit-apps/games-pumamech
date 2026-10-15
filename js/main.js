@@ -148,6 +148,8 @@
   };
   function startWorld(S) {
     game.S = S; game.mode = "explore";
+    /* nobody walks the map at 0 HP (older saves from a lost graduation sortie kept the cadet there) */
+    for (const c of G.partyChars(S)) if (c.hp <= 0) c.hp = Math.ceil(c.hpMax / 2);
     PM.SFX.stopTune();
     $("title").hidden = true; $("title").innerHTML = "";
     document.body.classList.remove("on-title");
@@ -282,6 +284,12 @@
       f.sortie3 = true; f.invaded = true;
       const tabby = S.mechs.find(m => m.ch === "tabby");
       tabby.at = "lance"; tabby.pilot = "hero";
+      /* beaten by the wolves: they leave the cadet for dead and the Tabby for scrap, and both get up again */
+      const lost = B.result === "lost";
+      if (lost) {
+        G.repairAll(tabby);
+        for (const c of G.partyChars(S)) c.hp = Math.max(c.hp, Math.ceil(c.hpMax / 2));
+      }
       for (const l of PM.LOCS) tabby.armor[l] = Math.floor(tabby.armor[l] * 0.5);
       if (!G.mechUsable(tabby)) { tabby.struct.LL = Math.max(1, tabby.struct.LL); tabby.struct.RL = Math.max(1, tabby.struct.RL); tabby.struct.CT = Math.max(2, tabby.struct.CT); tabby.struct.HD = Math.max(1, tabby.struct.HD); }
       G.news(S, "invasion");
@@ -290,6 +298,7 @@
       R.resetWalk(S); G.see(S, S.pos.x, S.pos.y, 8);
       R.draw({ S, snap: true }, performance.now());
       await UI.say([
+        ...(lost ? [{ text: [`You come to in the grass with your ears ringing. The grey mechs have gone on toward the Bastion: they took you for dead and your Tabby for scrap. It's neither, quite. The old thing still stands up when you ask it to.`] }] : []),
         { who: "Commander Rane Sunclaw", look: "father", text: [`Your radio crackles. Behind your father's voice: alarms, gunfire, the scream of dropship engines. "${esc(S.chars.hero.name)}. Listen. The Pact is landing on the Bastion -- four dropships, maybe more. We can't hold it."`] },
         { who: "Commander Rane Sunclaw", look: "father", text: [`"Do not come back here. That's an order, cadet, and it's also your father asking. Get to Portgate. Go to the Relay; I've left something for you. You have the signet?"`, `Your paw goes to the ring he gave you this morning, "for luck". It's still there.`, `"Good. Keep it safe. I'm --" The channel fills with static and doesn't clear.`] },
         { text: [`Smoke rises over the Bastion behind you. Grey mechs stand on its walls.`, `In the Tabby's cockpit locker you find an envelope in your father's writing: <i>For emergencies. This is one.</i> Inside, <b>1,500 crowns</b>.`, `Your Tabby is scorched and limping, its heat-sinks ticking. Portgate is south and east, across the river.`, `<span class="note">The journal (<kbd>J</kbd>) knows where to go. In the wilds the Pact's patrols will find you now: you'll fight in your Tabby, and on foot in the towns.</span>`] },
