@@ -56,6 +56,7 @@ The mouse works in a fight (hover moves the cursor, a click chooses). A gamepad 
 | `js/render.js`, `js/hud.js`, `js/ui.js`, `js/screens.js`, `js/places.js`, `js/battle.js` | the field, the panels, the sheets, the sheets that are places, and the fight on screen |
 | `js/sfx.js`, `js/main.js` | Web Audio (effects and the title march), and boot, title, the walk and the loop |
 | `tools/sim-check.js` | headless: battles end and replay the same from the same seed; every door, town and the Vault can be walked to; the Vault's doors are solvable |
+| `tools/playthrough.js` | headless: the story stage by stage, walked with the game's own step; every door, person and Vault fitting can be reached by a way the player can see (not under a roof, a Vault wall's top, or through people and parked mechs) |
 | `tools/balance.js` | headless: how often the AI wins the fights the story deals out (for tuning) |
 | `tools/stamp-assets.js`, `tools/check-assets.js` | content hashes on every script and stylesheet URL; every file the page names exists (games-meta §10) |
 | `tools/make-icons.js`, `tools/og.html`, `tools/icon-art.json` | the icons and the share card, from the game's own sprites |

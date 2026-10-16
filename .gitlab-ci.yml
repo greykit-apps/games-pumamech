@@ -15,6 +15,8 @@ validate:
     - for f in js/*.js js/engine/*.js tools/*.js; do node --check "$f"; done
     # battles end and replay the same; every door, town and the Vault can be walked to
     - node tools/sim-check.js --seeds 2
+    # the story played stage by stage: every door, person and Vault fitting reachable by a way you can see
+    - node tools/playthrough.js
     # every script and stylesheet URL carries its content hash, so Cloudflare's 30-day cache never serves an old one
     - node tools/stamp-assets.js --check
 
