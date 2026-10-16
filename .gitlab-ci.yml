@@ -67,4 +67,13 @@ deploy:
       }
   script:
     # Single destination, so this job costs exactly one SSH connection.
-    - puma_rsync -avz --delete --exclude='.git' --exclude='.claude' --exclude='.gitlab-ci.yml' --exclude='tools' ./ ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/pumamech/
+    #
+    # PRODUCT.md, DESIGN.md, .impeccable/ and .impeccable.md are design notes
+    # the impeccable skill writes into the repo root (games-meta STANDARD.md
+    # §12). They stay in the repo and off the live site.
+    #
+    # --delete-excluded is load-bearing: plain --delete PROTECTS excluded
+    # paths on the destination, so excluding a file already published would
+    # pin it there. With --delete-excluded, "do not publish" also means
+    # "remove from the live site".
+    - puma_rsync -avz --delete --delete-excluded --exclude='.git' --exclude='.claude' --exclude='PRODUCT.md' --exclude='DESIGN.md' --exclude='.impeccable' --exclude='.impeccable.md' --exclude='.gitlab-ci.yml' --exclude='tools' ./ ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/pumamech/
