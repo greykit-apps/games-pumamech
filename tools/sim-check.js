@@ -113,6 +113,33 @@ for (const o of W.objs) if (o.door) ok(PM.tileAt(W, o.door[0], o.door[1]) === PM
   ok(seen[(W.vaultDoor.y + 1) * W.w + W.vaultDoor.x] || seen[W.vaultDoor.y * W.w + W.vaultDoor.x], "can walk to the Vault's door");
   ok(seen[(PM.PORT.y + 5) * W.w + PM.PORT.x + 3], "can walk to the landing field");
 }
+/* ...and by a way the player can see: not through the people standing about,
+ * not through a cart or a lamp, not along the row a building's roof hides */
+for (const [when, flags, from, towns] of [["before the invasion", {}, [W.start.x, W.start.y], ["bastion"]],
+  ["under occupation", { invaded: true }, [21, 31], ["portgate", "fernwick", "kiln"]],
+  ["once freed", { invaded: true, bastionFree: true, portgateFree: true }, [W.start.x, W.start.y], ["bastion", "portgate", "fernwick", "kiln"]]]) {
+  const S = G.create({ name: "Test", seed: 1 });
+  Object.assign(S.flags, flags);
+  const shut = new Uint8Array(W.w * W.h);
+  for (const n of PM.Story.npcs(S)) shut[n.y * W.w + n.x] = 1;
+  for (const o of W.objs) {
+    if (o.k === "decor") for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) shut[y * W.w + x] = 1;
+    if (o.k === "bldg") for (let x = o.x; x < o.x + o.w; x++) shut[(o.y - 1) * W.w + x] = 1;
+  }
+  const seen = new Uint8Array(W.w * W.h), q = [from];
+  seen[from[1] * W.w + from[0]] = 1;
+  while (q.length) {
+    const [x, y] = q.pop();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, i = ny * W.w + nx;
+      if (nx < 0 || ny < 0 || nx >= W.w || ny >= W.h || seen[i] || shut[i] || !PM.TF[PM.tileAt(W, nx, ny)].walk) continue;
+      const gate = PM.Story.gate(S, nx, ny);
+      if (gate && gate.block) continue;
+      seen[i] = 1; q.push([nx, ny]);
+    }
+  }
+  for (const o of W.objs) if (o.door && towns.includes(o.town)) ok(seen[(o.door[1] + 1) * W.w + o.door[0]], `${when}: a clear way to the door of ${o.place}`);
+}
 /* the Vault's doors want codes its terminals give, in the right colours */
 for (const [n, codes] of Object.entries(PM.VDOORS)) ["red", "blue", "yellow"].forEach((col, i) => ok(Object.values(PM.TERMINALS).some(([c, code]) => c === col && code === codes[i]), `door ${n} ${col} code exists`));
 console.log(`${checks - fails}/${checks} checks passed`);

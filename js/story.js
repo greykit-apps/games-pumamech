@@ -31,7 +31,7 @@
     { id: "pactN", look: "trooper", x: 63, y: 45, when: S => S.flags.invaded && !S.flags.portgateFree, f: 6 },
     { id: "civP1", look: "civ1", x: 55, y: 56, when: S => S.flags.invaded, f: 2 },
     { id: "civP2", look: "civ4", x: 64, y: 54, when: S => S.flags.invaded, f: 4 },
-    { id: "civP3", look: "civ6", x: 69, y: 62, when: S => S.flags.invaded, f: 3 },
+    { id: "civP3", look: "civ6", x: 70, y: 55, when: S => S.flags.invaded, f: 3 },
     { id: "civP4", look: "civ9", x: 53, y: 63, when: S => S.flags.invaded, f: 1 },
     /* Fernwick */
     { id: "civF1", look: "civ2", x: 92, y: 34, when: S => S.flags.invaded, f: 2 },
