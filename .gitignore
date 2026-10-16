@@ -1,4 +1,3 @@
-.claude/
 .DS_Store
 # the original disks, kept beside the repo for reference only -- never commit them
 *.D64
@@ -7,3 +6,10 @@
 reference/
 # design-review snapshots, local only
 .impeccable/
+# .claude/ is local, except the skills a cloud session needs (games-meta STANDARD.md §12).
+# Last in the file so no rule above can hide part of a skill.
+!.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/**
+.claude/skills/**/.DS_Store
