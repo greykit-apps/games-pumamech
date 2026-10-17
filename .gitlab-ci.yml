@@ -23,6 +23,13 @@ validate:
 deploy:
   stage: deploy
   image: debian:bookworm-slim
+  # Run on GitLab's SaaS runners, never the self-hosted one. Something on the
+  # self-hosted runner's network path blackholes outbound port 22 to DreamHost
+  # for minutes after a few connections; the block is per source host, so the
+  # same rsync from GitLab's egress is not exposed to it. validate stays
+  # untagged: it opens no SSH and can run anywhere.
+  tags:
+    - saas-linux-small-amd64
   only:
     - main
   before_script:
