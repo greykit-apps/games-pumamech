@@ -11,6 +11,7 @@ validate:
   image: node:20-alpine
   script:
     - node tools/check-assets.js
+    - node tools/check-ship.js
     # every script parses
     - for f in js/*.js js/engine/*.js tools/*.js; do node --check "$f"; done
     # battles end and replay the same; every door, town and the Vault can be walked to
